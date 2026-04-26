@@ -7,7 +7,6 @@ namespace MusicSorter.Services;
 public static class PathBuilder
 {
     private static readonly char[] InvalidFileChars = Path.GetInvalidFileNameChars();
-    private static readonly char[] InvalidPathChars = Path.GetInvalidPathChars();
 
     public static string BuildDestination(string outputRoot, FolderLayout layout, FileNamePattern pattern,
                                           TrackMetadata m, string sourceExtension)

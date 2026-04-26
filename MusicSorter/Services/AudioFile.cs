@@ -7,7 +7,10 @@ namespace MusicSorter.Services;
 /// <summary>Lightweight bag of facts read from a single MP3 file.</summary>
 public sealed class AudioInfo
 {
-    public required string Path { get; init; }
+    /// <summary>Current location of the file. Updated by the sorter as the file
+    /// moves from source to destination so the dedup index always points at the
+    /// file's actual on-disk location.</summary>
+    public required string Path { get; set; }
     public TrackMetadata? Tags { get; init; }
     public int Bitrate { get; init; }       // kbps
     public TimeSpan Duration { get; init; }

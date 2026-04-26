@@ -30,17 +30,15 @@ public sealed class Mp3Sorter
 
         var allFiles = Directory.EnumerateFiles(_opts.Source, "*.mp3", SearchOption.AllDirectories).ToList();
 
-        var unsortedRoot   = Path.Combine(outputFull, "_Unsorted");
-        var duplicatesRoot = Path.Combine(outputFull, "_Duplicates");
+        var unsortedRoot = Path.Combine(outputFull, "_Unsorted");
         var files = (sameRoot ? allFiles : allFiles.Where(p => !IsUnder(p, outputFull)))
                     .Where(p => !IsUnder(p, unsortedRoot))
-                    .Where(p => !IsUnder(p, duplicatesRoot))
                     .ToList();
         var preFiltered = allFiles.Count - files.Count;
 
         Report(progress, 0, $"== Scanning '{_opts.Source}' ... found {allFiles.Count} mp3 file(s).");
         if (preFiltered > 0)
-            Report(progress, 0, $"   ({preFiltered} skipped: under output root, _Unsorted or _Duplicates)");
+            Report(progress, 0, $"   ({preFiltered} skipped: already under output root or _Unsorted)");
         Report(progress, 0, $"   Layout    : {_opts.Layout}");
         Report(progress, 0, $"   File name : {_opts.FileName}");
         Report(progress, 0, $"   Mode      : {(_opts.Move ? "MOVE" : "COPY")}");
@@ -196,10 +194,9 @@ public sealed class Mp3Sorter
     {
         if (!Directory.Exists(outputFull)) return;
 
-        var unsortedRoot   = Path.Combine(outputFull, "_Unsorted");
-        var duplicatesRoot = Path.Combine(outputFull, "_Duplicates");
+        var unsortedRoot = Path.Combine(outputFull, "_Unsorted");
         var existing = Directory.EnumerateFiles(outputFull, "*.mp3", SearchOption.AllDirectories)
-                                .Where(p => !IsUnder(p, unsortedRoot) && !IsUnder(p, duplicatesRoot))
+                                .Where(p => !IsUnder(p, unsortedRoot))
                                 .ToList();
 
         if (existing.Count == 0) return;

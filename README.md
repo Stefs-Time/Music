@@ -5,17 +5,25 @@ rips: `Artist - Song (Official Music Video) [HD].mp3`) and rewrites it into a
 clean library:
 
 * strips YouTube cruft from filenames (`(Official Music Video)`,
-  `[Lyrics]`, `(HD)`, trailing video IDs, uploader tags...)
-* identifies each track using **every available method** in cascade:
-  1. existing ID3 tags
-  2. cleaned filename
-  3. MusicBrainz title/artist search (free)
-  4. AcoustID audio fingerprint (Chromaprint + AcoustID API key)
-  5. Shazam search (RapidAPI key)
-* downloads the cover art (Cover Art Archive or Shazam image)
-* writes ID3v2 tags (artist, album, year, track #, genre, MBID, cover)
-* moves (or copies) the file into a destination layout you pick at run-time
-* anything that can't be confidently identified lands in `_Unsorted/`
+  `[Lyrics]`, `(HD)`, trailing 11-char video IDs, uploader tags...)
+* identifies each track by cascading through every available method until a
+  confident match is found:
+  - existing ID3 tags (always read first to avoid clobbering good metadata)
+  1. cleaned filename
+  2. MusicBrainz title/artist search (free, no key)
+  3. AcoustID audio fingerprint (needs Chromaprint `fpcalc.exe` + a free key)
+  4. Shazam text search (needs a RapidAPI key)
+* writes the merged result to the destination MP3 — with full control over
+  *what* gets written: full ID3 enrichment, fill-blanks-only, minimal
+  (Title + Artist), or **strip every tag** for an audio-only file.
+* embeds cover art from Cover Art Archive or Shazam — or **strips embedded
+  art entirely** if you'd rather have plain audio.
+* detects duplicates against the existing library (Artist+Title, recording
+  MBID, Artist+Duration ±2s, SHA-1) and **keeps the highest-quality copy**,
+  sending the loser to the Recycle Bin.
+* moves (or copies) the file into a destination layout you pick at run-time.
+* anything that can't be confidently identified lands in `_Unsorted/` so a
+  manual sweep is easy.
 
 ## Building the .exe
 

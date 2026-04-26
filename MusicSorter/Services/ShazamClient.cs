@@ -5,14 +5,13 @@ using MusicSorter.Models;
 namespace MusicSorter.Services;
 
 /// <summary>
-/// Shazam search via RapidAPI. Two endpoints supported (auto-fallback):
-///   - /search?term=<artist title>     (text search)
-///   - /songs/v2/detect (audio recognition) — only used if Shazam recognition by title fails.
+/// Shazam text search via RapidAPI (<c>/search?term=...</c>). Returns Shazam's rich
+/// metadata (album, genre, year, cover-art URL) for tracks where MusicBrainz is missing
+/// data — e.g. modern singles that haven't propagated to MB yet.
 ///
-/// Real audio recognition needs a 16-bit 44.1 kHz mono PCM sample uploaded as base64.  We
-/// don't ship an MP3 decoder, so this client does the *text* search by default and grabs
-/// rich Shazam metadata (album art URL, genre, ISRC). It still gives us enrichment that
-/// MusicBrainz misses (e.g. modern singles that aren't in MB yet).
+/// True Shazam audio recognition (POST /songs/v2/detect with a base64 PCM sample) is
+/// not implemented because it would require bundling an MP3 decoder to produce the
+/// 16-bit / 44.1 kHz / mono sample Shazam expects.
 /// </summary>
 public sealed class ShazamClient
 {

@@ -25,16 +25,6 @@ public sealed class MusicBrainzClient
         return await QueryAsync(url, ct);
     }
 
-    public async Task<TrackMetadata?> LookupByRecordingIdAsync(string mbid, CancellationToken ct)
-    {
-        var url = $"{Base}/recording/{mbid}?inc=releases+release-groups+artist-credits+tags&fmt=json";
-        await ThrottleAsync(ct);
-        using var resp = await SharedHttp.Client.GetAsync(url, ct);
-        if (!resp.IsSuccessStatusCode) return null;
-        var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
-        return MapRecording(doc.RootElement, scoreFloor: 0.85);
-    }
-
     private async Task<TrackMetadata?> QueryAsync(string url, CancellationToken ct)
     {
         await ThrottleAsync(ct);
