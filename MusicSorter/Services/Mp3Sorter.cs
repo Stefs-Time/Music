@@ -20,8 +20,27 @@ public sealed class Mp3Sorter
 
     public async Task RunAsync(IProgress<SorterProgress> progress, CancellationToken ct)
     {
-        var files = Directory.EnumerateFiles(_opts.Source, "*.mp3", SearchOption.AllDirectories).ToList();
-        Report(progress, 0, $"== Scanning '{_opts.Source}' ... found {files.Count} mp3 file(s).");
+        var outputFull = Path.GetFullPath(_opts.Output);
+        var sourceFull = Path.GetFullPath(_opts.Source);
+        var sameRoot   = string.Equals(outputFull.TrimEnd(Path.DirectorySeparatorChar),
+                                       sourceFull.TrimEnd(Path.DirectorySeparatorChar),
+                                       StringComparison.OrdinalIgnoreCase);
+
+        var allFiles = Directory.EnumerateFiles(_opts.Source, "*.mp3", SearchOption.AllDirectories).ToList();
+
+        // When source ≠ output, drop anything that already lives under the output root
+        // (e.g. user re-ran into the same library). When source == output the user is
+        // explicitly re-organizing in place — keep everything and rely on the per-file
+        // same-path / skip-existing checks.
+        var unsortedRoot = Path.Combine(outputFull, "_Unsorted");
+        var files = (sameRoot ? allFiles : allFiles.Where(p => !IsUnder(p, outputFull)))
+                    .Where(p => !IsUnder(p, unsortedRoot))
+                    .ToList();
+        var preFiltered = allFiles.Count - files.Count;
+
+        Report(progress, 0, $"== Scanning '{_opts.Source}' ... found {allFiles.Count} mp3 file(s).");
+        if (preFiltered > 0)
+            Report(progress, 0, $"   ({preFiltered} skipped: under output root or _Unsorted)");
         Report(progress, 0, $"   Layout    : {_opts.Layout}");
         Report(progress, 0, $"   File name : {_opts.FileName}");
         Report(progress, 0, $"   Mode      : {(_opts.Move ? "MOVE" : "COPY")}");
@@ -59,12 +78,24 @@ public sealed class Mp3Sorter
                     dest = PathBuilder.BuildUnsortedDestination(_opts.Output, file);
                 }
 
-                if (_opts.SkipExisting && File.Exists(dest) && AreSameFile(file, dest))
+                // Same path? Move would fail; copy would be a no-op. Always skip.
+                if (AreSameFile(file, dest))
                 {
                     Report(progress, pct, "  -> already at destination, skipped");
+                    if (confident)
+                        Mp3TagService.WriteTags(dest, meta, cover, _opts.OverwriteTags);
                     skipped++;
                     continue;
                 }
+
+                // SkipExisting: bail when a file with this name already exists at dest.
+                if (_opts.SkipExisting && File.Exists(dest))
+                {
+                    Report(progress, pct, $"  -> destination exists, skipped: {Relative(_opts.Output, dest)}");
+                    skipped++;
+                    continue;
+                }
+
                 dest = PathBuilder.EnsureUnique(dest);
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
 
@@ -94,6 +125,18 @@ public sealed class Mp3Sorter
         Report(progress, 100, $"== {matched} matched, {unsorted} unsorted, {skipped} skipped, {failed} failed.");
 
         if (_opts.Move) PruneEmptyDirs(_opts.Source);
+    }
+
+    private static bool IsUnder(string filePath, string folderFullPath)
+    {
+        try
+        {
+            var f = Path.GetFullPath(filePath);
+            var root = folderFullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                       + Path.DirectorySeparatorChar;
+            return f.StartsWith(root, StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
     }
 
     private static bool AreSameFile(string a, string b)

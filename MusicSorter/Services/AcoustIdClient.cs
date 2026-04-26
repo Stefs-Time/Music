@@ -66,16 +66,24 @@ public sealed class AcoustIdClient
             artist = string.Concat(bits).Trim();
         }
 
-        string? album = null, releaseId = null;
+        string? album = null, releaseId = null, releaseGroupId = null;
         uint year = 0, trackNo = 0, trackCount = 0;
         if (rec.TryGetProperty("releasegroups", out var rgs) && rgs.ValueKind == JsonValueKind.Array && rgs.GetArrayLength() > 0)
         {
-            var rg = rgs[0];
+            // Pick the first release-group flagged as "Album" if any, otherwise rgs[0].
+            JsonElement rg = rgs[0];
+            foreach (var candidate in rgs.EnumerateArray())
+            {
+                var type = candidate.TryGetProperty("type", out var ty) ? ty.GetString() : null;
+                if (string.Equals(type, "Album", StringComparison.OrdinalIgnoreCase)) { rg = candidate; break; }
+            }
+
             if (rg.TryGetProperty("title", out var rt)) album = rt.GetString();
-            if (rg.TryGetProperty("id", out var rid)) releaseId = rid.GetString();
+            if (rg.TryGetProperty("id", out var rgid)) releaseGroupId = rgid.GetString();
             if (rg.TryGetProperty("releases", out var rels) && rels.ValueKind == JsonValueKind.Array && rels.GetArrayLength() > 0)
             {
                 var rel = rels[0];
+                if (rel.TryGetProperty("id", out var rid)) releaseId = rid.GetString();
                 if (rel.TryGetProperty("date", out var d) && d.TryGetProperty("year", out var yr) && yr.TryGetInt32(out var yv))
                     year = (uint)yv;
                 if (rel.TryGetProperty("mediums", out var meds) && meds.ValueKind == JsonValueKind.Array)
@@ -107,6 +115,7 @@ public sealed class AcoustIdClient
             TrackNumber = trackNo,
             TrackCount = trackCount,
             MusicBrainzReleaseId = releaseId,
+            MusicBrainzReleaseGroupId = releaseGroupId,
             MusicBrainzRecordingId = rec.TryGetProperty("id", out var id) ? id.GetString() : null,
             Confidence = Math.Min(1.0, 0.6 + score * 0.4),
             Source = "acoustid"

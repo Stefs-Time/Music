@@ -33,7 +33,15 @@ public sealed class ChromaprintRunner
 
         using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Could not launch fpcalc");
         var stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
-        await proc.WaitForExitAsync(ct);
+        try
+        {
+            await proc.WaitForExitAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            try { proc.Kill(entireProcessTree: true); } catch { }
+            throw;
+        }
         var stdout = await stdoutTask;
         if (proc.ExitCode != 0) return null;
 

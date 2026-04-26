@@ -66,6 +66,8 @@ public static class Mp3TagService
                     tag.Genres = new[] { m.Genre! };
             if (!string.IsNullOrEmpty(m.MusicBrainzReleaseId))
                 tag.MusicBrainzReleaseId = m.MusicBrainzReleaseId;
+            if (!string.IsNullOrEmpty(m.MusicBrainzReleaseGroupId))
+                tag.MusicBrainzReleaseGroupId = m.MusicBrainzReleaseGroupId;
             if (!string.IsNullOrEmpty(m.MusicBrainzRecordingId))
                 tag.MusicBrainzTrackId = m.MusicBrainzRecordingId;
 

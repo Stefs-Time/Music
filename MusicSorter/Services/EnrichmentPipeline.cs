@@ -104,24 +104,30 @@ public sealed class EnrichmentPipeline
             catch (Exception ex) { log.Add($"  shazam    ! {ex.Message}"); }
         }
 
-        // 5. Promote MB ids onto best if we have any.
+        // 5. Promote MB ids from id3 onto best if we never got any.
         if (best.MusicBrainzReleaseId == null && id3?.MusicBrainzReleaseId != null)
             best.MusicBrainzReleaseId = id3.MusicBrainzReleaseId;
 
-        // 6. Album art.
+        // 6. Album art (Cover Art Archive by release MBID, then by release-group MBID,
+        //    then a direct image URL if Shazam gave us one).
         byte[]? cover = null;
         if (_opts.UseCoverArt)
         {
             try
             {
-                if (!string.IsNullOrEmpty(best.MusicBrainzReleaseId))
+                if (cover == null && !string.IsNullOrEmpty(best.MusicBrainzReleaseId))
                 {
                     cover = await _cover.FetchByReleaseMbidAsync(best.MusicBrainzReleaseId!, ct);
                     if (cover != null) log.Add("  coverart  -> CoverArtArchive (release)");
                 }
-                if (cover == null && !string.IsNullOrEmpty(_shazam.LastAlbumArtUrl))
+                if (cover == null && !string.IsNullOrEmpty(best.MusicBrainzReleaseGroupId))
                 {
-                    cover = await _cover.FetchByUrlAsync(_shazam.LastAlbumArtUrl, ct);
+                    cover = await _cover.FetchByReleaseGroupMbidAsync(best.MusicBrainzReleaseGroupId!, ct);
+                    if (cover != null) log.Add("  coverart  -> CoverArtArchive (release-group)");
+                }
+                if (cover == null && !string.IsNullOrEmpty(best.AlbumArtUrl))
+                {
+                    cover = await _cover.FetchByUrlAsync(best.AlbumArtUrl!, ct);
                     if (cover != null) log.Add("  coverart  -> Shazam image");
                 }
             }
@@ -149,8 +155,10 @@ public sealed class EnrichmentPipeline
         if (b.TrackNumber > 0 && (a.TrackNumber == 0 || prefer))   r.TrackNumber = b.TrackNumber;
         if (b.TrackCount > 0 && (a.TrackCount == 0 || prefer))     r.TrackCount = b.TrackCount;
         if (b.Disc > 0 && (a.Disc == 0 || prefer))                 r.Disc = b.Disc;
-        if (!string.IsNullOrEmpty(b.MusicBrainzReleaseId))   r.MusicBrainzReleaseId   = b.MusicBrainzReleaseId;
-        if (!string.IsNullOrEmpty(b.MusicBrainzRecordingId)) r.MusicBrainzRecordingId = b.MusicBrainzRecordingId;
+        if (!string.IsNullOrEmpty(b.MusicBrainzReleaseId))      r.MusicBrainzReleaseId      = b.MusicBrainzReleaseId;
+        if (!string.IsNullOrEmpty(b.MusicBrainzReleaseGroupId)) r.MusicBrainzReleaseGroupId = b.MusicBrainzReleaseGroupId;
+        if (!string.IsNullOrEmpty(b.MusicBrainzRecordingId))    r.MusicBrainzRecordingId    = b.MusicBrainzRecordingId;
+        if (!string.IsNullOrEmpty(b.AlbumArtUrl))               r.AlbumArtUrl               = b.AlbumArtUrl;
 
         if (b.Confidence > r.Confidence)
         {

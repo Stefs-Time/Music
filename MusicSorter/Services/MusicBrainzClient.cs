@@ -59,7 +59,13 @@ public sealed class MusicBrainzClient
     {
         if (rec.ValueKind != JsonValueKind.Object) return null;
 
-        var score = rec.TryGetProperty("score", out var s) ? s.GetInt32() / 100.0 : scoreFloor;
+        // MB returns "score" as either an int or a string depending on endpoint version.
+        double score = scoreFloor;
+        if (rec.TryGetProperty("score", out var s))
+        {
+            if (s.ValueKind == JsonValueKind.Number && s.TryGetInt32(out var iv)) score = iv / 100.0;
+            else if (s.ValueKind == JsonValueKind.String && int.TryParse(s.GetString(), out var sv)) score = sv / 100.0;
+        }
         var title = rec.TryGetProperty("title", out var t) ? t.GetString() : null;
         if (string.IsNullOrWhiteSpace(title)) return null;
 
@@ -82,7 +88,7 @@ public sealed class MusicBrainzClient
                 albumArtist = fn.GetString();
         }
 
-        string? album = null, releaseId = null;
+        string? album = null, releaseId = null, releaseGroupId = null;
         uint year = 0, trackNo = 0, trackCount = 0;
         if (rec.TryGetProperty("releases", out var rels) && rels.ValueKind == JsonValueKind.Array && rels.GetArrayLength() > 0)
         {
@@ -100,6 +106,9 @@ public sealed class MusicBrainzClient
 
             if (chosen.TryGetProperty("title", out var rt)) album = rt.GetString();
             if (chosen.TryGetProperty("id", out var rid)) releaseId = rid.GetString();
+            if (chosen.TryGetProperty("release-group", out var rg) &&
+                rg.TryGetProperty("id", out var rgid))
+                releaseGroupId = rgid.GetString();
             year = (uint)Math.Max(0, ParseDate(chosen).Year);
 
             if (chosen.TryGetProperty("media", out var media) && media.ValueKind == JsonValueKind.Array)
@@ -147,6 +156,7 @@ public sealed class MusicBrainzClient
             TrackCount = trackCount,
             Genre = genre,
             MusicBrainzReleaseId = releaseId,
+            MusicBrainzReleaseGroupId = releaseGroupId,
             MusicBrainzRecordingId = rec.TryGetProperty("id", out var id) ? id.GetString() : null,
             Confidence = score,
             Source = "musicbrainz"
@@ -168,8 +178,19 @@ public sealed class MusicBrainzClient
         return DateTime.MaxValue;
     }
 
-    private static string Escape(string s) =>
-        s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    /// <summary>Escape Lucene query special characters so a quoted query is safe.</summary>
+    private static string Escape(string s)
+    {
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (var ch in s)
+        {
+            if (ch is '\\' or '"' or '+' or '-' or '!' or '(' or ')'
+                or '{' or '}' or '[' or ']' or '^' or '~' or '*' or '?' or ':' or '/')
+                sb.Append('\\');
+            sb.Append(ch);
+        }
+        return sb.ToString();
+    }
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 

@@ -19,7 +19,6 @@ public sealed class ShazamClient
     private readonly string _key;
     private readonly string _host;
     public bool Configured => !string.IsNullOrWhiteSpace(_key);
-    public string LastAlbumArtUrl { get; private set; } = "";
 
     public ShazamClient(string apiKey, string host)
     {
@@ -84,13 +83,12 @@ public sealed class ShazamClient
             gen.TryGetProperty("primary", out var gp))
             genre = gp.GetString();
 
+        string? artUrl = null;
         if (tr.TryGetProperty("images", out var imgs))
         {
-            string? art = null;
             foreach (var key in new[] { "coverarthq", "coverart", "background" })
                 if (imgs.TryGetProperty(key, out var iv) && iv.GetString() is string s && !string.IsNullOrEmpty(s))
-                { art = s; break; }
-            LastAlbumArtUrl = art ?? "";
+                { artUrl = s; break; }
         }
 
         return new TrackMetadata
@@ -101,6 +99,7 @@ public sealed class ShazamClient
             Album = album,
             Year = year,
             Genre = genre,
+            AlbumArtUrl = artUrl,
             Confidence = 0.80,
             Source = "shazam"
         };

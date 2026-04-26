@@ -12,7 +12,12 @@ public sealed class TrackMetadata
     public uint Disc { get; set; }
     public string? Genre { get; set; }
     public string? MusicBrainzReleaseId { get; set; }
+    public string? MusicBrainzReleaseGroupId { get; set; }
     public string? MusicBrainzRecordingId { get; set; }
+
+    /// <summary>Direct URL to a cover-art image (e.g. from Shazam). Used as a fallback
+    /// when Cover Art Archive doesn't have one for the MBID.</summary>
+    public string? AlbumArtUrl { get; set; }
 
     /// <summary>0..1 confidence the metadata is correct.</summary>
     public double Confidence { get; set; }
