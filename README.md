@@ -70,10 +70,49 @@ the dropdown.
   * `Flat (no subfolders)`
 * **File name** — pick from `01 - Title.mp3`, `Artist - Title.mp3`,
   `01 - Artist - Title.mp3`, or `Title.mp3`.
-* **Enrichment methods** — toggle each step independently.
+* **Identification methods** — toggle each step independently.
+* **ID3 tag mode** (every possible representation):
+  * `Full enrichment` — overwrite tags with the matched metadata.
+  * `Fill blanks only` — only write fields that are currently empty.
+  * `Minimal` — write only Title + Artist, clear everything else.
+  * `Strip all tags` — leave the file with **no** ID3 tags at all
+    (audio-only, organized purely by filename / folder layout).
+* **Cover-art mode**:
+  * `Download + embed` — fetch from Cover Art Archive / Shazam and embed.
+  * `Keep existing` — never touch existing embedded art.
+  * `Strip all art` — remove every embedded picture (audio-only).
 * **File mode** — *Move* (cuts originals from the source) or *Copy*.
 * **Skip if destination file already exists** — re-run the sort safely.
-* **Overwrite existing ID3 tags** — turn off to only fill in blanks.
+
+### Duplicate handling
+
+Music Sorter detects duplicates against the existing library *and* against
+files already processed earlier in the same run, then keeps the
+highest-quality copy.
+
+* **Detection keys** (any combination):
+  * `Artist + Title` — case-insensitive, punctuation-stripped.
+  * `Recording / MBID` — same MusicBrainz / AcoustID recording-id.
+  * `Artist + Duration ±2s` — catches different encodings of the same song.
+  * `File hash (SHA-1)` — exact byte-identical files.
+  * `…also hash existing library` — opt-in. Off by default because hashing
+    every file in a 10K-track library is slow; with it off, hashes only
+    catch in-batch duplicates.
+* **Action**:
+  * `Keep highest-quality, remove others` — bitrate, then file size, then
+    duration. The lower-quality copy is sent to the **Recycle Bin** by
+    default (uncheck *Send removed duplicates to Recycle Bin* for a
+    permanent delete).
+  * `Log only (rename to '(2).mp3')` — disable automatic removal.
+
+### "Audio-only" recipes
+
+* **Just renamed audio**, no metadata at all? Tags = `Strip all tags`,
+  Art = `Strip all art`. Identification still computes the destination
+  filename / folder, but the file ends up tag-free.
+* **Strip embedded art only**, keep tags? Tags = `Full`, Art = `Strip`.
+* **Fix bad/missing tags without touching good ones**? Tags =
+  `Fill blanks only`, Art = `Keep existing`.
 
 Settings (including API keys) are persisted to
 `%APPDATA%\MusicSorter\settings.json` between runs.
@@ -97,6 +136,7 @@ MusicSorter/
   Models/
     TrackMetadata.cs          merged metadata struct
     FolderLayout.cs           layout + filename pattern enums
+    WriteOptions.cs           tag/art/dup mode enums + dropdown items
     SortOptions.cs            run options + AppSettings
   Services/
     FilenameCleaner.cs        regex-based YouTube-cruft stripping
@@ -106,6 +146,9 @@ MusicSorter/
     ShazamClient.cs           RapidAPI Shazam search
     CoverArtClient.cs         coverartarchive.org / Shazam image
     Mp3TagService.cs          read/write ID3 with TagLibSharp
+    AudioFile.cs              file properties + SHA-1 + quality compare
+    DuplicateIndex.cs         multi-key dedup index
+    RecycleBin.cs             SHFileOperation P/Invoke (delete to bin)
     PathBuilder.cs            destination path + safe segments
     EnrichmentPipeline.cs     orchestrates all sources
     Mp3Sorter.cs              top-level scan/move worker

@@ -1,7 +1,6 @@
 using System.IO;
 using System.Threading;
 using System.Windows;
-using System.Windows.Controls;
 using Microsoft.Win32;
 using MusicSorter.Models;
 using MusicSorter.Services;
@@ -25,6 +24,18 @@ public partial class MainWindow : Window
         FilenameCombo.DisplayMemberPath = nameof(FileNameOption.Label);
         FilenameCombo.SelectedIndex = 0;
 
+        TagModeCombo.ItemsSource = WriteOptions.TagModes;
+        TagModeCombo.DisplayMemberPath = nameof(TagWriteOption.Label);
+        TagModeCombo.SelectedIndex = 0;
+
+        ArtModeCombo.ItemsSource = WriteOptions.ArtModes;
+        ArtModeCombo.DisplayMemberPath = nameof(CoverArtOption.Label);
+        ArtModeCombo.SelectedIndex = 0;
+
+        DupActionCombo.ItemsSource = WriteOptions.DupActions;
+        DupActionCombo.DisplayMemberPath = nameof(DuplicateActionOption.Label);
+        DupActionCombo.SelectedIndex = 0;
+
         ShazamHostCombo.ItemsSource = new[]
         {
             "shazam.p.rapidapi.com",
@@ -47,19 +58,32 @@ public partial class MainWindow : Window
         FpcalcBox.Text = s.FpcalcPath ?? "";
         if (!string.IsNullOrEmpty(s.ShazamHost))
             ShazamHostCombo.Text = s.ShazamHost;
-        if (s.LayoutIndex is int li && li >= 0 && li < FolderLayoutOptions.Layouts.Count)
-            LayoutCombo.SelectedIndex = li;
-        if (s.FileNameIndex is int fi && fi >= 0 && fi < FolderLayoutOptions.FileNames.Count)
-            FilenameCombo.SelectedIndex = fi;
-        ChkClean.IsChecked = s.UseClean ?? true;
+        SetIndex(LayoutCombo,    s.LayoutIndex,    FolderLayoutOptions.Layouts.Count);
+        SetIndex(FilenameCombo,  s.FileNameIndex,  FolderLayoutOptions.FileNames.Count);
+        SetIndex(TagModeCombo,   s.TagModeIndex,   WriteOptions.TagModes.Count);
+        SetIndex(ArtModeCombo,   s.ArtModeIndex,   WriteOptions.ArtModes.Count);
+        SetIndex(DupActionCombo, s.DupActionIndex, WriteOptions.DupActions.Count);
+
+        ChkClean.IsChecked       = s.UseClean       ?? true;
         ChkMusicBrainz.IsChecked = s.UseMusicBrainz ?? true;
-        ChkAcoustId.IsChecked = s.UseAcoustId ?? true;
-        ChkShazam.IsChecked = s.UseShazam ?? true;
-        ChkCoverArt.IsChecked = s.UseCoverArt ?? true;
-        ChkOverwriteTags.IsChecked = s.OverwriteTags ?? true;
-        ChkSkipExisting.IsChecked = s.SkipExisting ?? true;
+        ChkAcoustId.IsChecked    = s.UseAcoustId    ?? true;
+        ChkShazam.IsChecked      = s.UseShazam      ?? true;
+        ChkSkipExisting.IsChecked = s.SkipExisting  ?? true;
         RbMove.IsChecked = !(s.Copy ?? false);
-        RbCopy.IsChecked = s.Copy ?? false;
+        RbCopy.IsChecked =  (s.Copy ?? false);
+
+        ChkDedup.IsChecked    = s.DedupEnabled       ?? true;
+        ChkDupAT.IsChecked    = s.DedupByArtistTitle ?? true;
+        ChkDupMbid.IsChecked  = s.DedupByMbid        ?? true;
+        ChkDupDur.IsChecked   = s.DedupByDuration    ?? true;
+        ChkDupHash.IsChecked  = s.DedupByHash        ?? true;
+        ChkHashLib.IsChecked  = s.HashEntireLibrary  ?? false;
+        ChkDupRecycle.IsChecked = s.DupRecycle       ?? true;
+    }
+
+    private static void SetIndex(System.Windows.Controls.ComboBox combo, int? idx, int count)
+    {
+        if (idx is int i && i >= 0 && i < count) combo.SelectedIndex = i;
     }
 
     private void SaveSettings()
@@ -74,14 +98,22 @@ public partial class MainWindow : Window
             ShazamHost = ShazamHostCombo.Text,
             LayoutIndex = LayoutCombo.SelectedIndex,
             FileNameIndex = FilenameCombo.SelectedIndex,
+            TagModeIndex = TagModeCombo.SelectedIndex,
+            ArtModeIndex = ArtModeCombo.SelectedIndex,
+            DupActionIndex = DupActionCombo.SelectedIndex,
             UseClean = ChkClean.IsChecked == true,
             UseMusicBrainz = ChkMusicBrainz.IsChecked == true,
             UseAcoustId = ChkAcoustId.IsChecked == true,
             UseShazam = ChkShazam.IsChecked == true,
-            UseCoverArt = ChkCoverArt.IsChecked == true,
-            OverwriteTags = ChkOverwriteTags.IsChecked == true,
             SkipExisting = ChkSkipExisting.IsChecked == true,
-            Copy = RbCopy.IsChecked == true
+            Copy = RbCopy.IsChecked == true,
+            DedupEnabled = ChkDedup.IsChecked == true,
+            DedupByArtistTitle = ChkDupAT.IsChecked == true,
+            DedupByMbid = ChkDupMbid.IsChecked == true,
+            DedupByDuration = ChkDupDur.IsChecked == true,
+            DedupByHash = ChkDupHash.IsChecked == true,
+            HashEntireLibrary = ChkHashLib.IsChecked == true,
+            DupRecycle = ChkDupRecycle.IsChecked == true
         });
     }
 
@@ -114,23 +146,34 @@ public partial class MainWindow : Window
             return;
         }
         Directory.CreateDirectory(OutputBox.Text);
-
         SaveSettings();
 
         var opts = new SortOptions
         {
             Source = SourceBox.Text,
             Output = OutputBox.Text,
-            Layout = ((FolderLayoutOption)LayoutCombo.SelectedItem!).Layout,
+            Layout   = ((FolderLayoutOption)LayoutCombo.SelectedItem!).Layout,
             FileName = ((FileNameOption)FilenameCombo.SelectedItem!).Pattern,
+            TagMode  = ((TagWriteOption)TagModeCombo.SelectedItem!).Mode,
+            ArtMode  = ((CoverArtOption)ArtModeCombo.SelectedItem!).Mode,
+            DupAction = ((DuplicateActionOption)DupActionCombo.SelectedItem!).Action,
+
             UseClean = ChkClean.IsChecked == true,
             UseMusicBrainz = ChkMusicBrainz.IsChecked == true,
             UseAcoustId = ChkAcoustId.IsChecked == true,
             UseShazam = ChkShazam.IsChecked == true,
-            UseCoverArt = ChkCoverArt.IsChecked == true,
-            OverwriteTags = ChkOverwriteTags.IsChecked == true,
+
             SkipExisting = ChkSkipExisting.IsChecked == true,
             Move = RbMove.IsChecked == true,
+
+            DedupEnabled       = ChkDedup.IsChecked == true,
+            DedupByArtistTitle = ChkDupAT.IsChecked == true,
+            DedupByMbid        = ChkDupMbid.IsChecked == true,
+            DedupByDuration    = ChkDupDur.IsChecked == true,
+            DedupByHash        = ChkDupHash.IsChecked == true,
+            HashEntireLibrary  = ChkHashLib.IsChecked == true,
+            DupRecycle         = ChkDupRecycle.IsChecked == true,
+
             AcoustIdKey = AcoustIdKeyBox.Text?.Trim() ?? "",
             ShazamKey = ShazamKeyBox.Text?.Trim() ?? "",
             ShazamHost = (ShazamHostCombo.Text ?? "").Trim(),
@@ -159,14 +202,8 @@ public partial class MainWindow : Window
             await Task.Run(() => sorter.RunAsync(progress, _cts.Token), _cts.Token);
             Log("== Done.");
         }
-        catch (OperationCanceledException)
-        {
-            Log("== Cancelled.");
-        }
-        catch (Exception ex)
-        {
-            Log($"!! {ex.Message}");
-        }
+        catch (OperationCanceledException) { Log("== Cancelled."); }
+        catch (Exception ex)               { Log($"!! {ex.Message}"); }
         finally
         {
             StartBtn.IsEnabled = true;

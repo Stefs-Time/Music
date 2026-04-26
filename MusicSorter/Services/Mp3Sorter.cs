@@ -4,18 +4,20 @@ using MusicSorter.Models;
 namespace MusicSorter.Services;
 
 /// <summary>
-/// Top-level orchestrator: scans the source folder, enriches every mp3, then
-/// renames + moves/copies it into the destination layout.
+/// Top-level orchestrator: scans the source folder, enriches every mp3, dedupes against
+/// the destination library, then renames + moves/copies it into the destination layout.
 /// </summary>
 public sealed class Mp3Sorter
 {
     private readonly SortOptions _opts;
     private readonly EnrichmentPipeline _pipeline;
+    private readonly DuplicateIndex _index;
 
     public Mp3Sorter(SortOptions opts)
     {
         _opts = opts;
         _pipeline = new EnrichmentPipeline(opts);
+        _index = new DuplicateIndex(opts);
     }
 
     public async Task RunAsync(IProgress<SorterProgress> progress, CancellationToken ct)
@@ -28,30 +30,37 @@ public sealed class Mp3Sorter
 
         var allFiles = Directory.EnumerateFiles(_opts.Source, "*.mp3", SearchOption.AllDirectories).ToList();
 
-        // When source ≠ output, drop anything that already lives under the output root
-        // (e.g. user re-ran into the same library). When source == output the user is
-        // explicitly re-organizing in place — keep everything and rely on the per-file
-        // same-path / skip-existing checks.
-        var unsortedRoot = Path.Combine(outputFull, "_Unsorted");
+        var unsortedRoot   = Path.Combine(outputFull, "_Unsorted");
+        var duplicatesRoot = Path.Combine(outputFull, "_Duplicates");
         var files = (sameRoot ? allFiles : allFiles.Where(p => !IsUnder(p, outputFull)))
                     .Where(p => !IsUnder(p, unsortedRoot))
+                    .Where(p => !IsUnder(p, duplicatesRoot))
                     .ToList();
         var preFiltered = allFiles.Count - files.Count;
 
         Report(progress, 0, $"== Scanning '{_opts.Source}' ... found {allFiles.Count} mp3 file(s).");
         if (preFiltered > 0)
-            Report(progress, 0, $"   ({preFiltered} skipped: under output root or _Unsorted)");
+            Report(progress, 0, $"   ({preFiltered} skipped: under output root, _Unsorted or _Duplicates)");
         Report(progress, 0, $"   Layout    : {_opts.Layout}");
         Report(progress, 0, $"   File name : {_opts.FileName}");
         Report(progress, 0, $"   Mode      : {(_opts.Move ? "MOVE" : "COPY")}");
+        Report(progress, 0, $"   Tags      : {_opts.TagMode}");
+        Report(progress, 0, $"   Art       : {_opts.ArtMode}");
         Report(progress, 0, $"   Sources   : clean={_opts.UseClean}, mb={_opts.UseMusicBrainz}, " +
-                            $"acoustid={_opts.UseAcoustId}, shazam={_opts.UseShazam}, art={_opts.UseCoverArt}");
+                            $"acoustid={_opts.UseAcoustId}, shazam={_opts.UseShazam}");
+        if (_opts.DedupEnabled)
+            Report(progress, 0, $"   Dedup     : action={_opts.DupAction}, recycle={_opts.DupRecycle}, " +
+                                $"keys=[{(_opts.DedupByArtistTitle?"AT ":"")}{(_opts.DedupByMbid?"MBID ":"")}" +
+                                $"{(_opts.DedupByDuration?"AD ":"")}{(_opts.DedupByHash?"HASH":"")}]");
         Report(progress, 0, "");
 
         Directory.CreateDirectory(_opts.Output);
-        Directory.CreateDirectory(Path.Combine(_opts.Output, "_Unsorted"));
+        Directory.CreateDirectory(unsortedRoot);
 
-        int done = 0, matched = 0, unsorted = 0, skipped = 0, failed = 0;
+        if (_opts.DedupEnabled)
+            await BuildLibraryIndexAsync(outputFull, progress, ct);
+
+        int done = 0, matched = 0, unsorted = 0, skipped = 0, deduped = 0, failed = 0;
 
         foreach (var file in files)
         {
@@ -62,33 +71,85 @@ public sealed class Mp3Sorter
 
             try
             {
+                var info = AudioFile.Read(file);
+                if (info == null)
+                {
+                    failed++;
+                    Report(progress, pct, "  ! could not read file");
+                    continue;
+                }
+
+                if (_opts.DedupEnabled && _opts.DedupByHash)
+                    info.Sha1 = AudioFile.ComputeSha1(file);
+
                 var (meta, cover, log) = await _pipeline.EnrichAsync(file, ct);
                 foreach (var l in log) Report(progress, pct, l);
 
                 bool confident = meta.HasArtistAndTitle && meta.Confidence >= 0.55;
 
-                string dest;
-                if (confident)
+                // Stash the enriched metadata onto the AudioInfo so dedup keys are accurate.
+                var enrichedInfo = new AudioInfo
                 {
-                    dest = PathBuilder.BuildDestination(_opts.Output, _opts.Layout, _opts.FileName, meta,
-                        Path.GetExtension(file));
-                }
-                else
+                    Path = file,
+                    Tags = meta,
+                    Bitrate = info.Bitrate,
+                    Duration = info.Duration,
+                    FileSize = info.FileSize,
+                    Sha1 = info.Sha1
+                };
+
+                // Duplicate check (skip self-matches: when scanning source==output, the
+                // file we're processing is already in the index, so FindMatch would hit
+                // itself).
+                if (_opts.DedupEnabled && _opts.DupAction == DuplicateAction.KeepBest)
                 {
-                    dest = PathBuilder.BuildUnsortedDestination(_opts.Output, file);
+                    var hit = _index.FindMatch(enrichedInfo);
+                    if (hit != null && AreSameFile(file, hit.Path)) hit = null;
+
+                    if (hit != null)
+                    {
+                        deduped++;
+                        var cmp = AudioFile.CompareQuality(enrichedInfo, hit);
+                        if (cmp <= 0)
+                        {
+                            // Existing file is at least as good — drop the incoming one.
+                            if (_opts.Move)
+                            {
+                                Report(progress, pct, $"  -> dup of '{Relative(_opts.Output, hit.Path)}' (kept {hit.Bitrate}kbps); incoming -> {(_opts.DupRecycle ? "Recycle Bin" : "deleted")}");
+                                RecycleBin.Remove(file, _opts.DupRecycle);
+                            }
+                            else
+                            {
+                                Report(progress, pct, $"  -> dup of '{Relative(_opts.Output, hit.Path)}' (kept {hit.Bitrate}kbps); not copied (source untouched)");
+                            }
+                            continue;
+                        }
+                        else
+                        {
+                            // Incoming is better — remove the library file then place the new one.
+                            Report(progress, pct, $"  -> dup, incoming wins ({enrichedInfo.Bitrate}kbps > {hit.Bitrate}kbps); '{Relative(_opts.Output, hit.Path)}' -> {(_opts.DupRecycle ? "Recycle Bin" : "deleted")}");
+                            _index.Remove(hit);
+                            RecycleBin.Remove(hit.Path, _opts.DupRecycle);
+                            // Fall through to placement.
+                        }
+                    }
                 }
 
-                // Same path? Move would fail; copy would be a no-op. Always skip.
+                string dest = confident
+                    ? PathBuilder.BuildDestination(_opts.Output, _opts.Layout, _opts.FileName, meta, Path.GetExtension(file))
+                    : PathBuilder.BuildUnsortedDestination(_opts.Output, file);
+
+                // src == dst? Skip the move; still re-tag in place if asked.
                 if (AreSameFile(file, dest))
                 {
                     Report(progress, pct, "  -> already at destination, skipped");
-                    if (confident)
-                        Mp3TagService.WriteTags(dest, meta, cover, _opts.OverwriteTags);
+                    Mp3TagService.WriteTags(dest, meta, cover, _opts.TagMode, _opts.ArtMode, confident);
+                    enrichedInfo.Path = dest;
+                    if (_opts.DedupEnabled) _index.Add(enrichedInfo);
                     skipped++;
                     continue;
                 }
 
-                // SkipExisting: bail when a file with this name already exists at dest.
                 if (_opts.SkipExisting && File.Exists(dest))
                 {
                     Report(progress, pct, $"  -> destination exists, skipped: {Relative(_opts.Output, dest)}");
@@ -99,13 +160,13 @@ public sealed class Mp3Sorter
                 dest = PathBuilder.EnsureUnique(dest);
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
 
-                // Place the file first, then write tags on the destination so the
-                // source folder doesn't get touched.
                 if (_opts.Move) File.Move(file, dest, overwrite: false);
                 else            File.Copy(file, dest, overwrite: false);
 
-                if (confident)
-                    Mp3TagService.WriteTags(dest, meta, cover, _opts.OverwriteTags);
+                Mp3TagService.WriteTags(dest, meta, cover, _opts.TagMode, _opts.ArtMode, confident);
+
+                enrichedInfo.Path = dest;
+                if (_opts.DedupEnabled) _index.Add(enrichedInfo);
 
                 Report(progress, pct, confident
                     ? $"  -> {Relative(_opts.Output, dest)}    [{meta.Source}, conf {meta.Confidence:0.00}]"
@@ -122,9 +183,48 @@ public sealed class Mp3Sorter
         }
 
         Report(progress, 100, "");
-        Report(progress, 100, $"== {matched} matched, {unsorted} unsorted, {skipped} skipped, {failed} failed.");
+        Report(progress, 100, $"== {matched} matched, {unsorted} unsorted, {skipped} skipped, {deduped} dup-removed, {failed} failed.");
 
         if (_opts.Move) PruneEmptyDirs(_opts.Source);
+    }
+
+    /// <summary>
+    /// Walk the existing output library and build the dedup index. Hashes are computed
+    /// only when <see cref="SortOptions.HashEntireLibrary"/> is enabled.
+    /// </summary>
+    private async Task BuildLibraryIndexAsync(string outputFull, IProgress<SorterProgress> progress, CancellationToken ct)
+    {
+        if (!Directory.Exists(outputFull)) return;
+
+        var unsortedRoot   = Path.Combine(outputFull, "_Unsorted");
+        var duplicatesRoot = Path.Combine(outputFull, "_Duplicates");
+        var existing = Directory.EnumerateFiles(outputFull, "*.mp3", SearchOption.AllDirectories)
+                                .Where(p => !IsUnder(p, unsortedRoot) && !IsUnder(p, duplicatesRoot))
+                                .ToList();
+
+        if (existing.Count == 0) return;
+        Report(progress, 0, $"== Indexing existing library ({existing.Count} file(s))...");
+
+        await Task.Run(() =>
+        {
+            int n = 0;
+            foreach (var path in existing)
+            {
+                ct.ThrowIfCancellationRequested();
+                n++;
+                var info = AudioFile.Read(path);
+                if (info == null) continue;
+                if (_opts.DedupByHash && _opts.HashEntireLibrary)
+                    info.Sha1 = AudioFile.ComputeSha1(path);
+                _index.Add(info);
+
+                if (n % 100 == 0)
+                    Report(progress, 0, $"   indexed {n}/{existing.Count}");
+            }
+        }, ct);
+
+        Report(progress, 0, $"   {_index.Count} library entries indexed.");
+        Report(progress, 0, "");
     }
 
     private static bool IsUnder(string filePath, string folderFullPath)

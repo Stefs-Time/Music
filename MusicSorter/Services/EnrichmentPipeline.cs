@@ -109,9 +109,10 @@ public sealed class EnrichmentPipeline
             best.MusicBrainzReleaseId = id3.MusicBrainzReleaseId;
 
         // 6. Album art (Cover Art Archive by release MBID, then by release-group MBID,
-        //    then a direct image URL if Shazam gave us one).
+        //    then a direct image URL if Shazam gave us one). Skipped when the user
+        //    chose Keep-existing or Strip — no point downloading art we won't write.
         byte[]? cover = null;
-        if (_opts.UseCoverArt)
+        if (_opts.ArtMode == CoverArtMode.EmbedDownloaded)
         {
             try
             {
