@@ -1,0 +1,146 @@
+<Window x:Class="MusicSorter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Music Sorter" Height="780" Width="900"
+        Background="{StaticResource BgBrush}"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Music Sorter"
+                   FontSize="22" FontWeight="Bold" Margin="0,0,0,12"/>
+
+        <!-- Folders -->
+        <GroupBox Grid.Row="1" Header="Folders">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="Source:" VerticalAlignment="Center"/>
+                <TextBox  Grid.Row="0" Grid.Column="1" x:Name="SourceBox" Margin="0,3"/>
+                <Button   Grid.Row="0" Grid.Column="2" Content="Browse..." Click="BrowseSource_Click" Margin="6,3,0,3"/>
+
+                <Label Grid.Row="1" Grid.Column="0" Content="Output:" VerticalAlignment="Center"/>
+                <TextBox  Grid.Row="1" Grid.Column="1" x:Name="OutputBox" Margin="0,3"/>
+                <Button   Grid.Row="1" Grid.Column="2" Content="Browse..." Click="BrowseOutput_Click" Margin="6,3,0,3"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Layout -->
+        <GroupBox Grid.Row="2" Header="Output structure (chosen at run-time)">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Label Grid.Row="0" Grid.Column="0" Content="Folder layout:"  VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="LayoutCombo" Margin="0,3"/>
+                <Label Grid.Row="1" Grid.Column="0" Content="File name:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="FilenameCombo" Margin="0,3"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Enrichment -->
+        <GroupBox Grid.Row="3" Header="Enrichment methods (run in cascade until a confident match is found)">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <CheckBox Grid.Row="0" Grid.Column="0" x:Name="ChkClean"      IsChecked="True"  Content="1. Clean filename (strip 'Official Music Video', '[Lyrics]', uploader names...)"/>
+                <CheckBox Grid.Row="1" Grid.Column="0" x:Name="ChkMusicBrainz" IsChecked="True" Content="2. MusicBrainz lookup (free, no key)"/>
+                <CheckBox Grid.Row="2" Grid.Column="0" x:Name="ChkAcoustId"   IsChecked="True"  Content="3. AcoustID fingerprint (needs fpcalc.exe + key)"/>
+                <CheckBox Grid.Row="3" Grid.Column="0" x:Name="ChkShazam"     IsChecked="True"  Content="4. Shazam (RapidAPI, needs key)"/>
+
+                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="ChkCoverArt"   IsChecked="True"  Content="Embed album art (Cover Art Archive)"/>
+                <CheckBox Grid.Row="1" Grid.Column="1" x:Name="ChkOverwriteTags" IsChecked="True" Content="Overwrite existing ID3 tags"/>
+                <CheckBox Grid.Row="2" Grid.Column="1" x:Name="ChkSkipExisting" IsChecked="True" Content="Skip if destination file already exists"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- API keys -->
+        <GroupBox Grid.Row="4" Header="API keys (saved to %APPDATA%\MusicSorter\settings.json)">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label    Grid.Row="0" Grid.Column="0" Content="AcoustID API key:" VerticalAlignment="Center"/>
+                <TextBox  Grid.Row="0" Grid.Column="1" x:Name="AcoustIdKeyBox" Margin="0,3"/>
+                <Label    Grid.Row="0" Grid.Column="2" Content="RapidAPI / Shazam key:" VerticalAlignment="Center"/>
+                <TextBox  Grid.Row="0" Grid.Column="3" x:Name="ShazamKeyBox" Margin="0,3"/>
+
+                <Label    Grid.Row="1" Grid.Column="0" Content="fpcalc.exe path:" VerticalAlignment="Center"/>
+                <TextBox  Grid.Row="1" Grid.Column="1" x:Name="FpcalcBox" Margin="0,3"
+                          ToolTip="Leave blank to look up fpcalc.exe on PATH or next to MusicSorter.exe"/>
+                <Label    Grid.Row="1" Grid.Column="2" Content="Shazam host:" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="1" Grid.Column="3" x:Name="ShazamHostCombo" Margin="0,3"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- File mode -->
+        <GroupBox Grid.Row="5" Header="File operation">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="RbMove" Content="Move (cut originals)" GroupName="Mode" IsChecked="True"/>
+                <RadioButton x:Name="RbCopy" Content="Copy (keep originals)" GroupName="Mode"/>
+                <TextBlock Text="  Unmatched files go to '_Unsorted' under the output folder."
+                           Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="20,0,0,0"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Log -->
+        <GroupBox Grid.Row="6" Header="Activity log">
+            <TextBox x:Name="LogBox" IsReadOnly="True" TextWrapping="NoWrap"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                     FontFamily="Consolas" FontSize="12" Background="#0F0F13"/>
+        </GroupBox>
+
+        <!-- Bottom action bar -->
+        <Grid Grid.Row="7" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ProgressBar Grid.Column="0" x:Name="Progress" Height="22" Minimum="0" Maximum="100"
+                         Foreground="{StaticResource AccentBrush}" Background="#15151A"/>
+            <Button Grid.Column="1" x:Name="StartBtn" Content="Start" Click="StartBtn_Click" Margin="10,0,0,0" MinWidth="90"/>
+            <Button Grid.Column="2" x:Name="CancelBtn" Content="Cancel" Click="CancelBtn_Click" Margin="6,0,0,0" MinWidth="90"
+                    IsEnabled="False" Background="#E57373"/>
+        </Grid>
+    </Grid>
+</Window>

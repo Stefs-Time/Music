@@ -1,0 +1,13 @@
+bin/
+obj/
+publish/
+*.user
+*.suo
+*.userprefs
+.vs/
+.idea/
+.vscode/
+*.pdb
+*.cache
+TestResults/
+*.log
