@@ -79,6 +79,10 @@ public partial class MainWindow : Window
         ChkDupHash.IsChecked  = s.DedupByHash        ?? true;
         ChkHashLib.IsChecked  = s.HashEntireLibrary  ?? false;
         ChkDupRecycle.IsChecked = s.DupRecycle       ?? true;
+
+        var cap = s.MaxFilesPerFolder ?? 0;
+        ChkFolderCap.IsChecked = cap > 0;
+        FolderCapBox.Text = (cap > 0 ? cap : 99).ToString();
     }
 
     private static void SetIndex(System.Windows.Controls.ComboBox combo, int? idx, int count)
@@ -113,8 +117,16 @@ public partial class MainWindow : Window
             DedupByDuration = ChkDupDur.IsChecked == true,
             DedupByHash = ChkDupHash.IsChecked == true,
             HashEntireLibrary = ChkHashLib.IsChecked == true,
-            DupRecycle = ChkDupRecycle.IsChecked == true
+            DupRecycle = ChkDupRecycle.IsChecked == true,
+            MaxFilesPerFolder = ParseFolderCap()
         });
+    }
+
+    private int ParseFolderCap()
+    {
+        if (ChkFolderCap.IsChecked != true) return 0;
+        if (int.TryParse(FolderCapBox.Text, out var n) && n > 0) return n;
+        return 0;
     }
 
     private void BrowseSource_Click(object sender, RoutedEventArgs e) => PickFolder(SourceBox);
@@ -173,6 +185,7 @@ public partial class MainWindow : Window
             DedupByHash        = ChkDupHash.IsChecked == true,
             HashEntireLibrary  = ChkHashLib.IsChecked == true,
             DupRecycle         = ChkDupRecycle.IsChecked == true,
+            MaxFilesPerFolder  = ParseFolderCap(),
 
             AcoustIdKey = AcoustIdKeyBox.Text?.Trim() ?? "",
             ShazamKey = ShazamKeyBox.Text?.Trim() ?? "",

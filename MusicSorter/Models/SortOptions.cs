@@ -21,6 +21,10 @@ public sealed class SortOptions
     public bool SkipExisting { get; set; } = true;
     public bool Move { get; set; } = true;
 
+    /// <summary>0 = unlimited. When &gt; 0, a leaf folder that already holds this many
+    /// .mp3 files is "full" and the next file is redirected to "Folder (2)", "(3)", etc.</summary>
+    public int MaxFilesPerFolder { get; set; } = 0;
+
     // Duplicate detection
     public bool DedupEnabled { get; set; } = true;
     public bool DedupByArtistTitle { get; set; } = true;
@@ -60,6 +64,7 @@ public sealed class AppSettings
     public int? TagModeIndex { get; set; }
     public int? ArtModeIndex { get; set; }
     public int? DupActionIndex { get; set; }
+    public int? MaxFilesPerFolder { get; set; }
     public bool? UseClean { get; set; }
     public bool? UseMusicBrainz { get; set; }
     public bool? UseAcoustId { get; set; }

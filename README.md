@@ -73,11 +73,21 @@ the dropdown.
   * `Artist / Album / <file>`
   * `AlbumArtist / Album / <file>`
   * `Artist / <file>`
+  * `Letter / Artist / <file>` — A / Abba, B / Blink-182. "The Beatles"
+    goes under B (leading "The " is stripped); digits go to "0-9";
+    anything else (e.g. `!!!`, `*NSYNC`) goes to `#`.
+  * `Letter / Artist / Album / <file>` — same letter bucketing but with
+    the album subfolder kept.
   * `Genre / Artist / Album / <file>`
   * `Year / Artist / Album / <file>`
   * `Flat (no subfolders)`
 * **File name** — pick from `01 - Title.mp3`, `Artist - Title.mp3`,
   `01 - Artist - Title.mp3`, or `Title.mp3`.
+* **Per-folder cap** — optionally limit the number of `.mp3` files in
+  any one leaf folder (default 99 when enabled). When the natural target
+  folder is full, files are redirected to `Folder (2)`, `Folder (3)`, etc.
+  Useful for layouts like *Letter / Artist / <file>* where one letter
+  can otherwise accumulate hundreds of files.
 * **Identification methods** — toggle each step independently.
 * **ID3 tag mode** (every possible representation):
   * `Full enrichment` — overwrite tags with the matched metadata.

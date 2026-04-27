@@ -16,20 +16,44 @@ public static class PathBuilder
         var album       = SafeSegment(m.Album ?? "Unknown Album");
         var genre       = SafeSegment(m.Genre ?? "Unknown Genre");
         var year        = m.Year > 0 ? m.Year.ToString() : "Unknown Year";
+        var letter      = FirstLetterBucket(m.Artist);
 
         var folder = layout switch
         {
-            FolderLayout.ArtistAlbumTrack       => Path.Combine(outputRoot, artist, album),
-            FolderLayout.AlbumArtistAlbumTrack  => Path.Combine(outputRoot, albumArtist, album),
-            FolderLayout.ArtistTitle            => Path.Combine(outputRoot, artist),
-            FolderLayout.GenreArtistAlbumTrack  => Path.Combine(outputRoot, genre, artist, album),
-            FolderLayout.YearArtistAlbumTrack   => Path.Combine(outputRoot, year, artist, album),
-            FolderLayout.Flat                   => outputRoot,
-            _                                    => Path.Combine(outputRoot, artist, album)
+            FolderLayout.ArtistAlbumTrack         => Path.Combine(outputRoot, artist, album),
+            FolderLayout.AlbumArtistAlbumTrack    => Path.Combine(outputRoot, albumArtist, album),
+            FolderLayout.ArtistTitle              => Path.Combine(outputRoot, artist),
+            FolderLayout.LetterArtistTitle        => Path.Combine(outputRoot, letter, artist),
+            FolderLayout.LetterArtistAlbumTrack   => Path.Combine(outputRoot, letter, artist, album),
+            FolderLayout.GenreArtistAlbumTrack    => Path.Combine(outputRoot, genre, artist, album),
+            FolderLayout.YearArtistAlbumTrack     => Path.Combine(outputRoot, year, artist, album),
+            FolderLayout.Flat                     => outputRoot,
+            _                                      => Path.Combine(outputRoot, artist, album)
         };
 
         var fileName = BuildFileName(pattern, m, sourceExtension);
         return Path.Combine(folder, fileName);
+    }
+
+    /// <summary>
+    /// First-letter folder bucket for "A / Abba / ..." style layouts. Strips a
+    /// leading "The " (so "The Beatles" goes under B). Anything starting with a
+    /// digit goes to "0-9"; anything else (e.g. "!!!", "*NSYNC") goes to "#".
+    /// </summary>
+    public static string FirstLetterBucket(string? artist)
+    {
+        if (string.IsNullOrWhiteSpace(artist)) return "#";
+        var s = artist!.TrimStart();
+        if (s.StartsWith("The ", StringComparison.OrdinalIgnoreCase) && s.Length > 4)
+            s = s[4..].TrimStart();
+        if (s.StartsWith("A ", StringComparison.OrdinalIgnoreCase) && s.Length > 2)
+            s = s[2..].TrimStart();
+        foreach (var c in s)
+        {
+            if (char.IsLetter(c)) return char.ToUpperInvariant(c).ToString();
+            if (char.IsDigit(c))  return "0-9";
+        }
+        return "#";
     }
 
     public static string BuildUnsortedDestination(string outputRoot, string sourcePath)

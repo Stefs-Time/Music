@@ -51,11 +51,23 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Label Grid.Row="0" Grid.Column="0" Content="Folder layout:"  VerticalAlignment="Center"/>
                         <ComboBox Grid.Row="0" Grid.Column="1" x:Name="LayoutCombo" Margin="0,3"/>
                         <Label Grid.Row="1" Grid.Column="0" Content="File name:" VerticalAlignment="Center"/>
                         <ComboBox Grid.Row="1" Grid.Column="1" x:Name="FilenameCombo" Margin="0,3"/>
+
+                        <Label Grid.Row="2" Grid.Column="0" Content="Per-folder cap:" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,3">
+                            <CheckBox x:Name="ChkFolderCap" Content="Limit files per folder to"
+                                      VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox x:Name="FolderCapBox" Text="99" Width="60"
+                                     VerticalContentAlignment="Center"
+                                     ToolTip="When a leaf folder fills up, the next files go to 'Folder (2)', '(3)', ..."/>
+                            <TextBlock Text="  files"
+                                       Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
                 </GroupBox>
 

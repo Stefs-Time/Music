@@ -12,12 +12,14 @@ public sealed class Mp3Sorter
     private readonly SortOptions _opts;
     private readonly EnrichmentPipeline _pipeline;
     private readonly DuplicateIndex _index;
+    private readonly FolderCapTracker _folderCap;
 
     public Mp3Sorter(SortOptions opts)
     {
         _opts = opts;
         _pipeline = new EnrichmentPipeline(opts);
         _index = new DuplicateIndex(opts);
+        _folderCap = new FolderCapTracker(opts.MaxFilesPerFolder);
     }
 
     public async Task RunAsync(IProgress<SorterProgress> progress, CancellationToken ct)
@@ -44,6 +46,8 @@ public sealed class Mp3Sorter
         Report(progress, 0, $"   Mode      : {(_opts.Move ? "MOVE" : "COPY")}");
         Report(progress, 0, $"   Tags      : {_opts.TagMode}");
         Report(progress, 0, $"   Art       : {_opts.ArtMode}");
+        if (_opts.MaxFilesPerFolder > 0)
+            Report(progress, 0, $"   FolderCap : {_opts.MaxFilesPerFolder} files / leaf folder");
         Report(progress, 0, $"   Sources   : clean={_opts.UseClean}, mb={_opts.UseMusicBrainz}, " +
                             $"acoustid={_opts.UseAcoustId}, shazam={_opts.UseShazam}");
         if (_opts.DedupEnabled)
@@ -137,6 +141,11 @@ public sealed class Mp3Sorter
                     ? PathBuilder.BuildDestination(_opts.Output, _opts.Layout, _opts.FileName, meta, Path.GetExtension(file))
                     : PathBuilder.BuildUnsortedDestination(_opts.Output, file);
 
+                // Apply the per-folder cap (if any). May redirect to "Folder (2)" etc.
+                // Confident matches respect the cap; _Unsorted does not (it's a triage
+                // bucket, not a curated layout).
+                if (confident) dest = _folderCap.Resolve(dest);
+
                 // src == dst? Skip the move; still re-tag in place if asked.
                 if (AreSameFile(file, dest))
                 {
@@ -144,6 +153,7 @@ public sealed class Mp3Sorter
                     Mp3TagService.WriteTags(dest, meta, cover, _opts.TagMode, _opts.ArtMode, confident);
                     enrichedInfo.Path = dest;
                     if (_opts.DedupEnabled) _index.Add(enrichedInfo);
+                    if (confident) _folderCap.Confirm(dest);
                     skipped++;
                     continue;
                 }
@@ -165,6 +175,7 @@ public sealed class Mp3Sorter
 
                 enrichedInfo.Path = dest;
                 if (_opts.DedupEnabled) _index.Add(enrichedInfo);
+                if (confident) _folderCap.Confirm(dest);
 
                 Report(progress, pct, confident
                     ? $"  -> {Relative(_opts.Output, dest)}    [{meta.Source}, conf {meta.Confidence:0.00}]"
