@@ -13,32 +13,36 @@ public static class Mp3TagService
         try
         {
             using var f = TagLib.File.Create(path);
-            var tag = f.Tag;
-            if (tag == null) return null;
-
-            var meta = new TrackMetadata
-            {
-                Title = string.IsNullOrWhiteSpace(tag.Title) ? null : tag.Title,
-                Artist = string.IsNullOrWhiteSpace(tag.FirstPerformer) ? null : tag.FirstPerformer,
-                AlbumArtist = string.IsNullOrWhiteSpace(tag.FirstAlbumArtist) ? null : tag.FirstAlbumArtist,
-                Album = string.IsNullOrWhiteSpace(tag.Album) ? null : tag.Album,
-                Year = tag.Year,
-                TrackNumber = tag.Track,
-                TrackCount = tag.TrackCount,
-                Disc = tag.Disc,
-                Genre = string.IsNullOrWhiteSpace(tag.FirstGenre) ? null : tag.FirstGenre,
-                MusicBrainzReleaseId = tag.MusicBrainzReleaseId,
-                MusicBrainzReleaseGroupId = tag.MusicBrainzReleaseGroupId,
-                MusicBrainzRecordingId = tag.MusicBrainzTrackId,
-                Confidence = (string.IsNullOrWhiteSpace(tag.Title) || string.IsNullOrWhiteSpace(tag.FirstPerformer)) ? 0.30 : 0.55,
-                Source = "id3"
-            };
-            return meta;
+            return MapTag(f.Tag);
         }
         catch
         {
             return null;
         }
+    }
+
+    /// <summary>Project a TagLib tag onto our metadata struct. Used by both
+    /// ReadExisting and AudioFile.Read so tags + properties come from one pass.</summary>
+    public static TrackMetadata? MapTag(TagLib.Tag? tag)
+    {
+        if (tag == null) return null;
+        return new TrackMetadata
+        {
+            Title = string.IsNullOrWhiteSpace(tag.Title) ? null : tag.Title,
+            Artist = string.IsNullOrWhiteSpace(tag.FirstPerformer) ? null : tag.FirstPerformer,
+            AlbumArtist = string.IsNullOrWhiteSpace(tag.FirstAlbumArtist) ? null : tag.FirstAlbumArtist,
+            Album = string.IsNullOrWhiteSpace(tag.Album) ? null : tag.Album,
+            Year = tag.Year,
+            TrackNumber = tag.Track,
+            TrackCount = tag.TrackCount,
+            Disc = tag.Disc,
+            Genre = string.IsNullOrWhiteSpace(tag.FirstGenre) ? null : tag.FirstGenre,
+            MusicBrainzReleaseId = tag.MusicBrainzReleaseId,
+            MusicBrainzReleaseGroupId = tag.MusicBrainzReleaseGroupId,
+            MusicBrainzRecordingId = tag.MusicBrainzTrackId,
+            Confidence = (string.IsNullOrWhiteSpace(tag.Title) || string.IsNullOrWhiteSpace(tag.FirstPerformer)) ? 0.30 : 0.55,
+            Source = "id3"
+        };
     }
 
     /// <summary>

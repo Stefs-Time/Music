@@ -166,11 +166,12 @@ public sealed class Mp3Sorter
                 else if (_opts.LetterBucketFallback)
                 {
                     dest = PathBuilder.BuildLetterFallbackDestination(_opts.Output, file);
-                    fallbackTag = "  (letter fallback — no confident match)";
+                    fallbackTag = "    (letter fallback — no confident match)";
                 }
                 else
                 {
                     dest = PathBuilder.BuildUnsortedDestination(_opts.Output, file);
+                    fallbackTag = "    (no confident match — review manually)";
                 }
 
                 // Apply the per-folder cap (if any). May redirect to "Folder (2)" etc.

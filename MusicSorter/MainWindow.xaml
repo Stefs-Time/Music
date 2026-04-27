@@ -88,6 +88,7 @@
                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="FolderCapBox" Text="99" Width="60"
                                      VerticalContentAlignment="Center"
+                                     IsEnabled="{Binding IsChecked, ElementName=ChkFolderCap}"
                                      ToolTip="When a leaf folder fills up, the next files go to 'Folder (2)', '(3)', ..."/>
                             <TextBlock Text="  files"
                                        Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"/>
@@ -156,8 +157,10 @@
                                   Content="Detect duplicates and remove the lower-quality copy"
                                   FontWeight="SemiBold" Margin="0,0,0,4"/>
 
-                        <Label    Grid.Row="1" Grid.Column="0" Content="Match by:" VerticalAlignment="Top" Margin="0,4,0,0"/>
-                        <WrapPanel Grid.Row="1" Grid.Column="1">
+                        <Label    Grid.Row="1" Grid.Column="0" Content="Match by:" VerticalAlignment="Top" Margin="0,4,0,0"
+                                  IsEnabled="{Binding IsChecked, ElementName=ChkDedup}"/>
+                        <WrapPanel Grid.Row="1" Grid.Column="1"
+                                   IsEnabled="{Binding IsChecked, ElementName=ChkDedup}">
                             <CheckBox x:Name="ChkDupAT"   IsChecked="True"  Content="Artist + Title"      Margin="0,0,16,0"/>
                             <CheckBox x:Name="ChkDupMbid" IsChecked="True"  Content="Recording / MBID"    Margin="0,0,16,0"/>
                             <CheckBox x:Name="ChkDupDur"  IsChecked="True"  Content="Artist + Duration ±2s" Margin="0,0,16,0"/>
@@ -165,12 +168,15 @@
                             <CheckBox x:Name="ChkHashLib" IsChecked="False" Content="...also hash existing library (slow)"/>
                         </WrapPanel>
 
-                        <Label    Grid.Row="2" Grid.Column="0" Content="Action:" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="2" Grid.Column="1" x:Name="DupActionCombo" Margin="0,3"/>
+                        <Label    Grid.Row="2" Grid.Column="0" Content="Action:" VerticalAlignment="Center"
+                                  IsEnabled="{Binding IsChecked, ElementName=ChkDedup}"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1" x:Name="DupActionCombo" Margin="0,3"
+                                  IsEnabled="{Binding IsChecked, ElementName=ChkDedup}"/>
 
                         <CheckBox Grid.Row="3" Grid.Column="1" x:Name="ChkDupRecycle" IsChecked="True"
                                   Content="Send removed duplicates to Recycle Bin (uncheck for permanent delete)"
-                                  Margin="0,4,0,0"/>
+                                  Margin="0,4,0,0"
+                                  IsEnabled="{Binding IsChecked, ElementName=ChkDedup}"/>
                     </Grid>
                 </GroupBox>
 

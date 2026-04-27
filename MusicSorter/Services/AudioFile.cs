@@ -24,6 +24,11 @@ public sealed class AudioInfo
 
 public static class AudioFile
 {
+    /// <summary>
+    /// Read tags + audio properties + size for a single MP3, all from one TagLib
+    /// pass. (Previously this opened the file twice — once for properties and once
+    /// inside Mp3TagService.ReadExisting for the tag fields.)
+    /// </summary>
     public static AudioInfo? Read(string path)
     {
         try
@@ -33,7 +38,7 @@ public static class AudioFile
             return new AudioInfo
             {
                 Path = path,
-                Tags = Mp3TagService.ReadExisting(path),
+                Tags = Mp3TagService.MapTag(f.Tag),
                 Bitrate = f.Properties?.AudioBitrate ?? 0,
                 Duration = f.Properties?.Duration ?? TimeSpan.Zero,
                 FileSize = fi.Exists ? fi.Length : 0
