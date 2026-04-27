@@ -84,10 +84,27 @@ public sealed class Mp3Sorter
                 if (_opts.DedupEnabled && _opts.DedupByHash)
                     info.Sha1 = AudioFile.ComputeSha1(file);
 
-                var (meta, cover, log) = await _pipeline.EnrichAsync(file, ct);
-                foreach (var l in log) Report(progress, pct, l);
+                // Pure rename mode: skip the entire enrichment pipeline and just
+                // rename based on the cleaned source filename. No API calls, no tag
+                // changes — just a fast filename pass.
+                bool renameOnly = _opts.Layout == FolderLayout.KeepInPlace
+                                  && _opts.FileName == FileNamePattern.CleanedFilename;
+                TrackMetadata meta;
+                byte[]? cover;
+                if (renameOnly)
+                {
+                    meta = info.Tags ?? new TrackMetadata { Source = "id3", Confidence = 0 };
+                    cover = null;
+                }
+                else
+                {
+                    var (m, c, log) = await _pipeline.EnrichAsync(file, ct);
+                    foreach (var l in log) Report(progress, pct, l);
+                    meta = m; cover = c;
+                }
 
-                bool confident = meta.HasArtistAndTitle && meta.Confidence >= 0.55;
+                bool confident = renameOnly
+                    || (meta.HasArtistAndTitle && meta.Confidence >= 0.55);
 
                 // Stash the enriched metadata onto the AudioInfo so dedup keys are accurate.
                 var enrichedInfo = new AudioInfo
@@ -138,7 +155,7 @@ public sealed class Mp3Sorter
                 }
 
                 string dest = confident
-                    ? PathBuilder.BuildDestination(_opts.Output, _opts.Layout, _opts.FileName, meta, Path.GetExtension(file))
+                    ? PathBuilder.BuildDestination(_opts.Output, file, _opts.Layout, _opts.FileName, meta)
                     : PathBuilder.BuildUnsortedDestination(_opts.Output, file);
 
                 // Apply the per-folder cap (if any). May redirect to "Folder (2)" etc.

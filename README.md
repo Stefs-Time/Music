@@ -128,6 +128,26 @@ highest-quality copy.
     permanent delete).
   * `Log only (rename to '(2).mp3')` — disable automatic removal.
 
+### Pure "just rename, do nothing else" mode
+
+If you only want to clean up filenames in place — no library reorganisation,
+no API calls, no tag changes — pick:
+
+* Folder layout = **`Rename in place`**
+* File name    = **`{cleaned source filename}.mp3 (no metadata)`**
+
+In this mode Music Sorter:
+
+* skips the entire identification pipeline (no MusicBrainz / AcoustID /
+  Shazam calls — runs at disk speed)
+* leaves every file in its current folder
+* leaves ID3 tags and embedded cover art untouched
+* just renames `Artist - Song (Official Music Video) [HD]_dQw4w9WgXcQ.mp3`
+  to `Artist - Song.mp3`
+
+`Move` vs `Copy` still applies — Move renames the file, Copy creates a
+cleaned-name duplicate next to it.
+
 ### "Audio-only" recipes
 
 * **Just renamed audio**, no metadata at all? Tags = `Strip all tags`,

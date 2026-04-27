@@ -8,9 +8,11 @@ public static class PathBuilder
 {
     private static readonly char[] InvalidFileChars = Path.GetInvalidFileNameChars();
 
-    public static string BuildDestination(string outputRoot, FolderLayout layout, FileNamePattern pattern,
-                                          TrackMetadata m, string sourceExtension)
+    public static string BuildDestination(string outputRoot, string sourcePath,
+                                          FolderLayout layout, FileNamePattern pattern,
+                                          TrackMetadata m)
     {
+        var ext         = Path.GetExtension(sourcePath);
         var artist      = SafeSegment(m.Artist ?? "Unknown Artist");
         var albumArtist = SafeSegment(m.AlbumArtist ?? m.Artist ?? "Unknown Artist");
         var album       = SafeSegment(m.Album ?? "Unknown Album");
@@ -28,11 +30,12 @@ public static class PathBuilder
             FolderLayout.LetterTitle              => Path.Combine(outputRoot, letter),
             FolderLayout.GenreArtistAlbumTrack    => Path.Combine(outputRoot, genre, artist, album),
             FolderLayout.YearArtistAlbumTrack     => Path.Combine(outputRoot, year, artist, album),
+            FolderLayout.KeepInPlace              => Path.GetDirectoryName(sourcePath) ?? outputRoot,
             FolderLayout.Flat                     => outputRoot,
             _                                      => Path.Combine(outputRoot, artist, album)
         };
 
-        var fileName = BuildFileName(pattern, m, sourceExtension);
+        var fileName = BuildFileName(pattern, m, ext, sourcePath);
         return Path.Combine(folder, fileName);
     }
 
@@ -65,8 +68,18 @@ public static class PathBuilder
         return Path.Combine(outputRoot, "_Unsorted", fname + Path.GetExtension(sourcePath));
     }
 
-    private static string BuildFileName(FileNamePattern pattern, TrackMetadata m, string ext)
+    private static string BuildFileName(FileNamePattern pattern, TrackMetadata m, string ext, string sourcePath)
     {
+        if (pattern == FileNamePattern.CleanedFilename)
+        {
+            var raw = Path.GetFileNameWithoutExtension(sourcePath) ?? "";
+            var cleaned = SafeSegment(FilenameCleaner.Clean(raw));
+            if (string.IsNullOrWhiteSpace(cleaned)) cleaned = SafeSegment(raw);
+            if (string.IsNullOrWhiteSpace(cleaned)) cleaned = "track";
+            if (cleaned.Length > 200) cleaned = cleaned[..200];
+            return cleaned + ext;
+        }
+
         var title = SafeSegment(m.Title ?? "Unknown Title");
         var artist = SafeSegment(m.Artist ?? "Unknown Artist");
         var trackStr = m.TrackNumber > 0 ? m.TrackNumber.ToString("00") : "00";
