@@ -13,6 +13,8 @@ public partial class App : Application
 
     public App()
     {
+        StartupTrace.Log("App constructor entered");
+
         // Three layers because no single hook catches everything in WPF.
         DispatcherUnhandledException += (_, e) =>
         {
@@ -30,6 +32,8 @@ public partial class App : Application
             ReportFatal("UnobservedTaskException", e.Exception);
             e.SetObserved();
         };
+
+        StartupTrace.Log("App constructor finished");
     }
 
     /// <summary>
@@ -38,12 +42,15 @@ public partial class App : Application
     /// </summary>
     protected override void OnStartup(StartupEventArgs e)
     {
+        StartupTrace.Log("OnStartup entered");
         try
         {
             base.OnStartup(e);
+            StartupTrace.Log("OnStartup base completed (window should be showing)");
         }
         catch (Exception ex)
         {
+            StartupTrace.Log("OnStartup threw: " + ex.GetType().Name + " - " + ex.Message);
             ReportFatal("Application.OnStartup", ex);
             Shutdown(1);
         }
@@ -51,6 +58,8 @@ public partial class App : Application
 
     private static void ReportFatal(string source, Exception? ex)
     {
+        StartupTrace.Log($"ReportFatal({source}): {ex?.GetType().Name} - {ex?.Message}");
+
         // Always write the full chain to a file first — that's the source of truth
         // even if the message box is dismissed too quickly.
         string logPath = ErrorLogPath;

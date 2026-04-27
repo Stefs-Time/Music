@@ -15,7 +15,7 @@ dotnet publish MusicSorter\MusicSorter.csproj ^
     --self-contained true ^
     -p:PublishSingleFile=true ^
     -p:IncludeAllContentForSelfExtract=true ^
-    -p:EnableCompressionInSingleFile=true ^
+    -p:EnableCompressionInSingleFile=false ^
     -o publish || goto :err
 
 echo.

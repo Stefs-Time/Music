@@ -127,20 +127,46 @@ Settings (including API keys) are persisted to
 
 ## Troubleshooting startup crashes
 
-If Music Sorter shows a red error popup and exits, the **full exception
-chain** (type, message, inner exception, stack trace, runtime info) is
-written to:
+Music Sorter writes two diagnostic files into `%APPDATA%\MusicSorter\`
+that should always be checked in this order:
 
-```
-%APPDATA%\MusicSorter\last-error.log
-```
+1. **`startup.log`** — written by a module initializer the moment our
+   assembly is loaded by the runtime. Each phase appends a line:
 
-The popup itself shows the path. Open that file to see the underlying
-cause — XAML parse errors, missing dependencies, settings deserialisation
-problems and unhandled async exceptions all end up there.
+   ```
+   12:01:02.103 module initializer reached
+   12:01:02.110 App constructor entered
+   12:01:02.111 App constructor finished
+   12:01:02.114 OnStartup entered
+   12:01:02.428 OnStartup base completed (window should be showing)
+   ```
 
-If `%APPDATA%` isn't writable, the log falls back to
-`%TEMP%\MusicSorter-last-error.log`.
+   * **No `startup.log` at all** → the assembly never loaded. The
+     single-file extraction failed (antivirus, locked `%TEMP%`, etc.)
+     or the runtime is incompatible. Try `build-folder.cmd` instead of
+     `build.cmd` — that produces a folder publish with no extraction
+     step. Run the `.exe` from inside `publish-folder\`.
+   * **Only `module initializer reached`** → the App constructor never
+     ran. Almost always a JIT failure on App's static refs.
+   * **Stops at `OnStartup entered`** → the WPF MainWindow ctor or
+     XAML parse threw. The exception itself is in `last-error.log`.
+
+2. **`last-error.log`** — full exception chain (type, message, inner
+   exception, every stack trace, OS / CLR / app-dir info) for any
+   unhandled crash. Whenever you see the red popup, this file has the
+   real reason.
+
+If `%APPDATA%` isn't writable both files fall back to `%TEMP%\`
+(`MusicSorter-startup.log` and `MusicSorter-last-error.log`).
+
+### Build options
+
+* `build.cmd` — single-file `publish\MusicSorter.exe`. Self-extracts
+  on first run. Compression is **off** because it has caused first-run
+  failures on some Windows configurations.
+* `build-folder.cmd` — folder publish at `publish-folder\`. No
+  extraction step at all; if single-file boot fails, this always
+  works. The whole folder is needed — you can't move the `.exe` alone.
 
 ## How it decides what's "matched"
 

@@ -15,8 +15,12 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- WPF cannot load native dependencies from inside a bundle, so the single-file
+         host has to extract them on first run. This is required for WPF apps. -->
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- Compression is disabled: it has caused first-run extraction failures on some
+         Windows configurations and we'd rather ship a slightly bigger .exe that boots. -->
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
