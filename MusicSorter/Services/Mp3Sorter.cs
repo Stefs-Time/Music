@@ -46,8 +46,10 @@ public sealed class Mp3Sorter
         Report(progress, 0, $"   Mode      : {(_opts.Move ? "MOVE" : "COPY")}");
         Report(progress, 0, $"   Tags      : {_opts.TagMode}");
         Report(progress, 0, $"   Art       : {_opts.ArtMode}");
-        if (_opts.MaxFilesPerFolder > 0)
+        if (_opts.MaxFilesPerFolder > 0 && _opts.Layout != FolderLayout.KeepInPlace)
             Report(progress, 0, $"   FolderCap : {_opts.MaxFilesPerFolder} files / leaf folder");
+        else if (_opts.MaxFilesPerFolder > 0)
+            Report(progress, 0, $"   FolderCap : ignored (KeepInPlace layout)");
         Report(progress, 0, $"   Sources   : clean={_opts.UseClean}, mb={_opts.UseMusicBrainz}, " +
                             $"acoustid={_opts.UseAcoustId}, shazam={_opts.UseShazam}");
         if (_opts.DedupEnabled)
@@ -172,9 +174,12 @@ public sealed class Mp3Sorter
                 }
 
                 // Apply the per-folder cap (if any). May redirect to "Folder (2)" etc.
-                // Confident matches respect the cap; _Unsorted does not (it's a triage
-                // bucket, not a curated layout).
-                if (confident) dest = _folderCap.Resolve(dest);
+                // Confident matches respect the cap; _Unsorted / letter fallback don't.
+                // KeepInPlace also opts out — the user explicitly asked us to leave the
+                // file in its source folder, so creating "SourceFolder (2)" siblings would
+                // pollute their existing structure.
+                if (confident && _opts.Layout != FolderLayout.KeepInPlace)
+                    dest = _folderCap.Resolve(dest);
 
                 // src == dst? Skip the move; still re-tag in place if asked.
                 if (AreSameFile(file, dest))
@@ -183,7 +188,8 @@ public sealed class Mp3Sorter
                     Mp3TagService.WriteTags(dest, meta, cover, _opts.TagMode, _opts.ArtMode, confident);
                     enrichedInfo.Path = dest;
                     if (_opts.DedupEnabled) _index.Add(enrichedInfo);
-                    if (confident) _folderCap.Confirm(dest);
+                    if (confident && _opts.Layout != FolderLayout.KeepInPlace)
+                        _folderCap.Confirm(dest);
                     skipped++;
                     continue;
                 }
@@ -205,7 +211,8 @@ public sealed class Mp3Sorter
 
                 enrichedInfo.Path = dest;
                 if (_opts.DedupEnabled) _index.Add(enrichedInfo);
-                if (confident) _folderCap.Confirm(dest);
+                if (confident && _opts.Layout != FolderLayout.KeepInPlace)
+                    _folderCap.Confirm(dest);
 
                 Report(progress, pct, confident
                     ? $"  -> {Relative(_opts.Output, dest)}    [{meta.Source}, conf {meta.Confidence:0.00}]"

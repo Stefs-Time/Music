@@ -239,7 +239,7 @@
             <Button Grid.Column="1" x:Name="StartBtn" Content="Start"
                     Click="StartBtn_Click" Margin="14,0,0,0" MinWidth="100"/>
             <Button Grid.Column="2" x:Name="CancelBtn" Content="Cancel"
-                    Style="{StaticResource GhostButton}"
+                    Style="{DynamicResource GhostButton}"
                     Click="CancelBtn_Click" Margin="8,0,0,0" MinWidth="100"
                     IsEnabled="False"/>
         </Grid>
