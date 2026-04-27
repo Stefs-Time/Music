@@ -20,6 +20,10 @@ public sealed class SortOptions
     // File operation
     public bool SkipExisting { get; set; } = true;
     public bool Move { get; set; } = true;
+    /// <summary>If identification fails (no confident match), bucket the file by
+    /// the first letter of its cleaned source filename (A/, B/, …, 0-9/, #/)
+    /// instead of dumping into _Unsorted/. Default on.</summary>
+    public bool LetterBucketFallback { get; set; } = true;
 
     /// <summary>0 = unlimited. When &gt; 0, a leaf folder that already holds this many
     /// .mp3 files is "full" and the next file is redirected to "Folder (2)", "(3)", etc.</summary>
@@ -78,4 +82,5 @@ public sealed class AppSettings
     public bool? DedupByHash { get; set; }
     public bool? HashEntireLibrary { get; set; }
     public bool? DupRecycle { get; set; }
+    public bool? LetterBucketFallback { get; set; }
 }

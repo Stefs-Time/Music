@@ -204,11 +204,14 @@
 
                 <!-- File mode -->
                 <GroupBox Header="FILE OPERATION">
-                    <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="RbMove" Content="Move (cut originals)" GroupName="Mode" IsChecked="True"/>
-                        <RadioButton x:Name="RbCopy" Content="Copy (keep originals)" GroupName="Mode"/>
-                        <TextBlock Text="  Unmatched files go to '_Unsorted' under the output."
-                                   Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="20,0,0,0"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbMove" Content="Move (cut originals)" GroupName="Mode" IsChecked="True"/>
+                            <RadioButton x:Name="RbCopy" Content="Copy (keep originals)" GroupName="Mode"/>
+                        </StackPanel>
+                        <CheckBox x:Name="ChkLetterFallback" IsChecked="True"
+                                  Content="If identification fails, bucket the file by the first letter of its cleaned filename (e.g. R\Random YouTube weirdness.mp3) instead of dumping into _Unsorted\"
+                                  Margin="0,6,0,0"/>
                     </StackPanel>
                 </GroupBox>
 

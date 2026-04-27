@@ -235,8 +235,28 @@ If `%APPDATA%` isn't writable both files fall back to `%TEMP%\`
 Each enrichment source returns a confidence in `[0..1]`. The pipeline merges
 results, keeping the highest-confidence value for each field. A track is
 considered matched if it ends with both an artist and a title and an overall
-confidence ≥ 0.55 — otherwise it goes to `_Unsorted/` so you can review it
-manually.
+confidence ≥ 0.55 — otherwise the **letter-bucket fallback** kicks in
+(see below) and the file lands at `<first-letter>/<cleaned filename>.mp3`
+in the output. If you uncheck the fallback toggle, unmatched files go to
+`_Unsorted/` instead, ready for manual review.
+
+### Letter-bucket fallback (last resort)
+
+When the entire identification cascade — ID3, filename parse, MusicBrainz,
+AcoustID, Shazam — fails to produce a confident match, the file is bucketed
+by the **first letter of its cleaned source filename**:
+
+```
+random YouTube weirdness.mp3   →   R / random YouTube weirdness.mp3
+4 minutes mystery rip.mp3      →   0-9 / 4 minutes mystery rip.mp3
+[unknown] track from 2003.mp3  →   # / unknown track from 2003.mp3
+The Beatles weird mix.mp3      →   B / Beatles weird mix.mp3   (leading "The " stripped)
+```
+
+This way nothing ever just "disappears" into a single dumping ground —
+every file ends up somewhere browsable. Toggle it off in *File operation
+→ "If identification fails, bucket by first letter…"* if you'd rather
+have the old `_Unsorted/` behaviour.
 
 ## Project layout
 

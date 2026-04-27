@@ -57,7 +57,8 @@ public sealed class Mp3Sorter
         Report(progress, 0, "");
 
         Directory.CreateDirectory(_opts.Output);
-        Directory.CreateDirectory(unsortedRoot);
+        if (!_opts.LetterBucketFallback)
+            Directory.CreateDirectory(unsortedRoot);
 
         if (_opts.DedupEnabled)
             await BuildLibraryIndexAsync(outputFull, progress, ct);
@@ -154,9 +155,21 @@ public sealed class Mp3Sorter
                     }
                 }
 
-                string dest = confident
-                    ? PathBuilder.BuildDestination(_opts.Output, file, _opts.Layout, _opts.FileName, meta)
-                    : PathBuilder.BuildUnsortedDestination(_opts.Output, file);
+                string dest;
+                string fallbackTag = "";
+                if (confident)
+                {
+                    dest = PathBuilder.BuildDestination(_opts.Output, file, _opts.Layout, _opts.FileName, meta);
+                }
+                else if (_opts.LetterBucketFallback)
+                {
+                    dest = PathBuilder.BuildLetterFallbackDestination(_opts.Output, file);
+                    fallbackTag = "  (letter fallback — no confident match)";
+                }
+                else
+                {
+                    dest = PathBuilder.BuildUnsortedDestination(_opts.Output, file);
+                }
 
                 // Apply the per-folder cap (if any). May redirect to "Folder (2)" etc.
                 // Confident matches respect the cap; _Unsorted does not (it's a triage
@@ -196,7 +209,7 @@ public sealed class Mp3Sorter
 
                 Report(progress, pct, confident
                     ? $"  -> {Relative(_opts.Output, dest)}    [{meta.Source}, conf {meta.Confidence:0.00}]"
-                    : $"  -> _Unsorted\\{Path.GetFileName(dest)}");
+                    : $"  -> {Relative(_opts.Output, dest)}{fallbackTag}");
 
                 if (confident) matched++; else unsorted++;
             }

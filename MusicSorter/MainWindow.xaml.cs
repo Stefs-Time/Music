@@ -79,6 +79,7 @@ public partial class MainWindow : Window
         ChkDupHash.IsChecked  = s.DedupByHash        ?? true;
         ChkHashLib.IsChecked  = s.HashEntireLibrary  ?? false;
         ChkDupRecycle.IsChecked = s.DupRecycle       ?? true;
+        ChkLetterFallback.IsChecked = s.LetterBucketFallback ?? true;
 
         var cap = s.MaxFilesPerFolder ?? 0;
         ChkFolderCap.IsChecked = cap > 0;
@@ -118,6 +119,7 @@ public partial class MainWindow : Window
             DedupByHash = ChkDupHash.IsChecked == true,
             HashEntireLibrary = ChkHashLib.IsChecked == true,
             DupRecycle = ChkDupRecycle.IsChecked == true,
+            LetterBucketFallback = ChkLetterFallback.IsChecked == true,
             MaxFilesPerFolder = ParseFolderCap()
         });
     }
@@ -185,6 +187,7 @@ public partial class MainWindow : Window
             DedupByHash        = ChkDupHash.IsChecked == true,
             HashEntireLibrary  = ChkHashLib.IsChecked == true,
             DupRecycle         = ChkDupRecycle.IsChecked == true,
+            LetterBucketFallback = ChkLetterFallback.IsChecked == true,
             MaxFilesPerFolder  = ParseFolderCap(),
 
             AcoustIdKey = AcoustIdKeyBox.Text?.Trim() ?? "",

@@ -68,6 +68,26 @@ public static class PathBuilder
         return Path.Combine(outputRoot, "_Unsorted", fname + Path.GetExtension(sourcePath));
     }
 
+    /// <summary>
+    /// Last-resort fallback: identification didn't produce a confident match, so
+    /// bucket by the first letter of the cleaned source filename. Same FirstLetter
+    /// rules as the metadata letter-layouts (digits → "0-9", symbols → "#",
+    /// leading "The "/"A " stripped).
+    /// </summary>
+    public static string BuildLetterFallbackDestination(string outputRoot, string sourcePath)
+    {
+        var raw = Path.GetFileNameWithoutExtension(sourcePath) ?? "";
+        var cleaned = FilenameCleaner.Clean(raw);
+        if (string.IsNullOrWhiteSpace(cleaned)) cleaned = raw;
+
+        var letter = FirstLetterBucket(cleaned);
+        var fname  = SafeSegment(cleaned);
+        if (string.IsNullOrWhiteSpace(fname)) fname = "track";
+        if (fname.Length > 200) fname = fname[..200];
+
+        return Path.Combine(outputRoot, letter, fname + Path.GetExtension(sourcePath));
+    }
+
     private static string BuildFileName(FileNamePattern pattern, TrackMetadata m, string ext, string sourcePath)
     {
         if (pattern == FileNamePattern.CleanedFilename)
