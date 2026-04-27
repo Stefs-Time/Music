@@ -125,6 +125,23 @@ highest-quality copy.
 Settings (including API keys) are persisted to
 `%APPDATA%\MusicSorter\settings.json` between runs.
 
+## Troubleshooting startup crashes
+
+If Music Sorter shows a red error popup and exits, the **full exception
+chain** (type, message, inner exception, stack trace, runtime info) is
+written to:
+
+```
+%APPDATA%\MusicSorter\last-error.log
+```
+
+The popup itself shows the path. Open that file to see the underlying
+cause — XAML parse errors, missing dependencies, settings deserialisation
+problems and unhandled async exceptions all end up there.
+
+If `%APPDATA%` isn't writable, the log falls back to
+`%TEMP%\MusicSorter-last-error.log`.
+
 ## How it decides what's "matched"
 
 Each enrichment source returns a confidence in `[0..1]`. The pipeline merges
