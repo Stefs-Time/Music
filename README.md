@@ -135,6 +135,33 @@ highest-quality copy.
 Settings (including API keys) are persisted to
 `%APPDATA%\MusicSorter\settings.json` between runs.
 
+## Smart App Control / SmartScreen blocked the .exe
+
+Music Sorter is unsigned (no commercial code-signing certificate), so on
+Windows 11 with **Smart App Control** (or any Windows with **SmartScreen**
+turned on) you may see one of:
+
+* "Microsoft Defender SmartScreen prevented an unrecognised app from
+  starting"  →  click **More info**, then **Run anyway**.
+* "Smart App Control blocked an app that may be unsafe"  →  this one is
+  stricter. Three options:
+  1. **Right-click `MusicSorter.exe` → Properties → check *Unblock* at
+     the bottom → OK.** This sets the file's "downloaded from Internet"
+     flag off; SAC then evaluates it locally instead of refusing
+     outright.
+  2. Build it yourself: clone the repo and run `build.cmd`. Files you
+     compiled locally aren't flagged as "downloaded".
+  3. Turn Smart App Control off in *Windows Security → App & browser
+     control → Smart App Control settings*. Note that SAC can only be
+     turned **back** on by reinstalling Windows, so this is a one-way
+     door — only do it if you're comfortable with that trade-off.
+
+The published binary includes a Windows version resource (Company,
+Product, Copyright, FileVersion) and a side-by-side application
+manifest declaring per-monitor DPI awareness, long-path support and
+Windows 10/11 compatibility. That's the most a self-published .exe
+can do without a signing certificate.
+
 ## Troubleshooting startup crashes
 
 Music Sorter writes two diagnostic files into `%APPDATA%\MusicSorter\`
