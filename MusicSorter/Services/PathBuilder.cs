@@ -25,6 +25,7 @@ public static class PathBuilder
             FolderLayout.ArtistTitle              => Path.Combine(outputRoot, artist),
             FolderLayout.LetterArtistTitle        => Path.Combine(outputRoot, letter, artist),
             FolderLayout.LetterArtistAlbumTrack   => Path.Combine(outputRoot, letter, artist, album),
+            FolderLayout.LetterTitle              => Path.Combine(outputRoot, letter),
             FolderLayout.GenreArtistAlbumTrack    => Path.Combine(outputRoot, genre, artist, album),
             FolderLayout.YearArtistAlbumTrack     => Path.Combine(outputRoot, year, artist, album),
             FolderLayout.Flat                     => outputRoot,

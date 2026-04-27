@@ -14,6 +14,10 @@ public enum FolderLayout
     /// <summary>A / Abba / Arrival / 03 - Dancing Queen.mp3 — same letter bucketing
     /// but with the album subfolder kept.</summary>
     LetterArtistAlbumTrack,
+    /// <summary>A / Abba - Dancing Queen.mp3 — letter bucket only, no artist
+    /// subfolder. Pair with the per-folder cap (e.g. 99) so a busy letter splits
+    /// into "A", "A (2)", "A (3)", ... instead of one huge directory.</summary>
+    LetterTitle,
     Flat
 }
 
@@ -37,6 +41,7 @@ public static class FolderLayoutOptions
         new FolderLayoutOption(FolderLayout.ArtistTitle,             "Artist / <file>"),
         new FolderLayoutOption(FolderLayout.LetterArtistTitle,       "Letter / Artist / <file>          (A / Abba / ...)"),
         new FolderLayoutOption(FolderLayout.LetterArtistAlbumTrack,  "Letter / Artist / Album / <file>  (A / Abba / Arrival / ...)"),
+        new FolderLayoutOption(FolderLayout.LetterTitle,             "Letter / <file>                   (A / Abba - Dancing Queen.mp3)"),
         new FolderLayoutOption(FolderLayout.GenreArtistAlbumTrack,   "Genre / Artist / Album / <file>"),
         new FolderLayoutOption(FolderLayout.YearArtistAlbumTrack,    "Year / Artist / Album / <file>"),
         new FolderLayoutOption(FolderLayout.Flat,                    "Flat (no subfolders)")

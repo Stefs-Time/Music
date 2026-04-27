@@ -78,6 +78,11 @@ the dropdown.
     anything else (e.g. `!!!`, `*NSYNC`) goes to `#`.
   * `Letter / Artist / Album / <file>` — same letter bucketing but with
     the album subfolder kept.
+  * `Letter / <file>` — letter bucket only, no artist subfolder. Pair
+    with the per-folder cap (e.g. 99) so a busy letter splits into
+    `A`, `A (2)`, `A (3)`, ... and pair with a file-name pattern that
+    keeps the artist (e.g. *Artist - Title.mp3*) since the path no
+    longer carries it.
   * `Genre / Artist / Album / <file>`
   * `Year / Artist / Album / <file>`
   * `Flat (no subfolders)`
