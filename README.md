@@ -1,6 +1,16 @@
 # Music Sorter
 
-A Windows WPF app that takes a folder of badly-named music (typical YouTube
+A Windows WPF app with two modes:
+
+* **SORT** — moves / renames / tags an MP3 collection into a clean library
+  layout, using a cascading identification pipeline.
+* **ANALYZE** — read-only inspector that scans an existing MP3 library and
+  reports stats, tag completeness, top genres / artists, and likely issues
+  (YouTube rips, suspected duplicates, untagged files). No file is touched.
+
+## SORT mode
+
+The Sort tab takes a folder of badly-named music (typical YouTube
 rips: `Artist - Song (Official Music Video) [HD].mp3`) and rewrites it into a
 clean library:
 
@@ -26,6 +36,47 @@ clean library:
   letter of its cleaned filename (`R / random YouTube weirdness.mp3`) so
   nothing ever just disappears into a dumping ground. Toggle that off to
   fall back to `_Unsorted/` for manual review.
+
+## ANALYZE mode
+
+The Analyze tab is a **read-only library inspector**. Pick a folder, hit
+**Analyze**, and Music Sorter walks every `.mp3` (recursively) and produces:
+
+**KPI cards (top of the tab)**
+* `MP3 FILES` — total + how many were unreadable
+* `TOTAL SIZE` — bytes on disk + average per file
+* `DURATION` — wall-clock listening time (e.g. `71h 14m`)
+* `AVG BITRATE` — average kbps + min / max
+
+**Tag completeness meters**
+A bar per field showing the % of scanned files that have it set:
+*Title, Artist, Album, Album Artist, Year, Genre, Track #, MBID*.
+Quickly tells you which fields are systematically missing.
+
+**Top genres / Top artists**
+Two columns showing the top 15 of each (count + name). The genre
+normalisation collapses `rock`, `Rock`, `ROCK ` into one bucket.
+
+**Bitrate distribution**
+Histogram across `<128, 128, 192, 256, 320, >320` kbps so you can see
+at a glance whether the library is uniform quality or a mix.
+
+**Issues found**
+* `⚠ N likely YouTube rips` — filenames with `(Official Music Video)`,
+  `[HD]`, trailing 11-char video ids, etc.
+* `⚠ N duplicate groups` — files that share Artist + Title (case-
+  and punctuation-insensitive). Includes the bytes you could reclaim
+  by deleting all-but-one of each group.
+* `⚠ N files with no usable tags` — only the cleaned filename to go on.
+* `⚠ N files missing artist OR title` — partial tags.
+
+If none of these trigger, you get a green "No issues detected — your
+library looks clean." line instead.
+
+**Analyze log**
+Live progress lines and the final timing summary appear in the
+collapsible log at the bottom of the tab. **No file is modified by
+the analyzer** — it's purely read.
 
 ## Building the .exe
 

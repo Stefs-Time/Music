@@ -10,9 +10,7 @@
     <Grid Margin="20,14,20,14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto" MinHeight="0" MaxHeight="540"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Header bar -->
@@ -40,7 +38,16 @@
             </StackPanel>
         </Grid>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <TabControl Grid.Row="1">
+            <TabItem Header="SORT">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" MinHeight="0" MaxHeight="540"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
             <StackPanel>
 
                 <!-- Folders -->
@@ -225,8 +232,8 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- KPI dashboard + log share row 2 -->
-        <Grid Grid.Row="2" Margin="0,4,0,0">
+        <!-- KPI dashboard + log -->
+        <Grid Grid.Row="1" Margin="0,4,0,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -316,7 +323,7 @@
         </Grid>
 
         <!-- Bottom action bar -->
-        <Grid Grid.Row="3" Margin="0,12,0,0">
+        <Grid Grid.Row="2" Margin="0,12,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -335,5 +342,204 @@
                     IsEnabled="False"
                     ToolTip="Cancel the running sort (Esc)"/>
         </Grid>
+            </Grid>
+            </TabItem>
+
+            <!-- ============================ ANALYZE tab ====================== -->
+            <TabItem Header="ANALYZE">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Library picker -->
+                    <GroupBox Grid.Row="0" Header="LIBRARY" Margin="0,4,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Column="0" Content="Folder:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" x:Name="AnalyzeFolderBox" Margin="0,3"/>
+                            <Button  Grid.Column="2" Content="Browse..." Click="BrowseAnalyzeFolder_Click" Margin="6,3,0,3"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- KPI cards -->
+                    <UniformGrid Grid.Row="1" Rows="1" Columns="4" Margin="0,0,-8,10">
+                        <Border Style="{DynamicResource KpiCard}">
+                            <StackPanel>
+                                <TextBlock x:Name="AnFilesNum" Style="{DynamicResource KpiNumber}" Text="—"/>
+                                <TextBlock Style="{DynamicResource KpiLabel}" Text="MP3 FILES"/>
+                                <TextBlock x:Name="AnFilesSub" Style="{DynamicResource KpiSubtitle}" Text="press Analyze to scan"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource KpiCard}">
+                            <StackPanel>
+                                <TextBlock x:Name="AnSizeNum"  Style="{DynamicResource KpiNumber}"
+                                           Foreground="{DynamicResource AccentBrush}" Text="—"/>
+                                <TextBlock Style="{DynamicResource KpiLabel}" Text="TOTAL SIZE"/>
+                                <TextBlock x:Name="AnSizeSub"  Style="{DynamicResource KpiSubtitle}" Text="—"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource KpiCard}">
+                            <StackPanel>
+                                <TextBlock x:Name="AnDurNum"   Style="{DynamicResource KpiNumber}"
+                                           Foreground="{DynamicResource SuccessBrush}" Text="—"/>
+                                <TextBlock Style="{DynamicResource KpiLabel}" Text="DURATION"/>
+                                <TextBlock x:Name="AnDurSub"   Style="{DynamicResource KpiSubtitle}" Text="—"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource KpiCard}">
+                            <StackPanel>
+                                <TextBlock x:Name="AnBitrateNum" Style="{DynamicResource KpiNumber}"
+                                           Foreground="{DynamicResource InfoBrush}" Text="—"/>
+                                <TextBlock Style="{DynamicResource KpiLabel}" Text="AVG BITRATE"/>
+                                <TextBlock x:Name="AnBitrateSub" Style="{DynamicResource KpiSubtitle}" Text="kbps"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <!-- Body: completeness + tops + issues -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- Tag completeness meters -->
+                            <GroupBox Header="TAG COMPLETENESS">
+                                <Grid x:Name="AnCompletenessGrid">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="80"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Title"        Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="0" Grid.Column="1" x:Name="AnTitleBar"   Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" x:Name="AnTitleVal"  Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Artist"       Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="1" Grid.Column="1" x:Name="AnArtistBar"  Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" x:Name="AnArtistVal" Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Album"        Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="2" Grid.Column="1" x:Name="AnAlbumBar"   Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" x:Name="AnAlbumVal"  Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Album Artist" Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="3" Grid.Column="1" x:Name="AnAABar"     Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="2" x:Name="AnAAVal"     Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Year"         Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="4" Grid.Column="1" x:Name="AnYearBar"    Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="2" x:Name="AnYearVal"   Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Genre"        Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="5" Grid.Column="1" x:Name="AnGenreBar"   Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="2" x:Name="AnGenreVal"  Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Track #"      Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="6" Grid.Column="1" x:Name="AnTrackBar"   Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="2" x:Name="AnTrackVal"  Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="MBID"         Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="7" Grid.Column="1" x:Name="AnMbidBar"    Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="2" x:Name="AnMbidVal"   Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                </Grid>
+                            </GroupBox>
+
+                            <!-- Top genres + artists -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <GroupBox Grid.Column="0" Header="TOP GENRES" Margin="0,0,5,0">
+                                    <ListBox x:Name="AnGenresList" Background="Transparent" BorderThickness="0"
+                                             Foreground="{DynamicResource TextBrush}" MaxHeight="220"/>
+                                </GroupBox>
+                                <GroupBox Grid.Column="1" Header="TOP ARTISTS" Margin="5,0,0,0">
+                                    <ListBox x:Name="AnArtistsList" Background="Transparent" BorderThickness="0"
+                                             Foreground="{DynamicResource TextBrush}" MaxHeight="220"/>
+                                </GroupBox>
+                            </Grid>
+
+                            <!-- Issues -->
+                            <GroupBox Header="ISSUES FOUND">
+                                <StackPanel x:Name="AnIssuesPanel">
+                                    <TextBlock Text="Run an analysis to populate this section."
+                                               Foreground="{DynamicResource SubtleBrush}" FontSize="12"/>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Header="BITRATE DISTRIBUTION">
+                                <Grid x:Name="AnBitrateGrid">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="80"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="&lt; 128 kbps" Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="0" Grid.Column="1" x:Name="AnBr1Bar" Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" x:Name="AnBr1Val" Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="128 kbps" Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="1" Grid.Column="1" x:Name="AnBr2Bar" Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" x:Name="AnBr2Val" Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="192 kbps" Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="2" Grid.Column="1" x:Name="AnBr3Bar" Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" x:Name="AnBr3Val" Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="256 kbps" Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="3" Grid.Column="1" x:Name="AnBr4Bar" Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="2" x:Name="AnBr4Val" Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="320 kbps" Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="4" Grid.Column="1" x:Name="AnBr5Bar" Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="2" x:Name="AnBr5Val" Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="&gt; 320 kbps" Style="{DynamicResource MeterLabel}" Margin="0,4"/>
+                                    <ProgressBar Grid.Row="5" Grid.Column="1" x:Name="AnBr6Bar" Style="{DynamicResource MeterBar}" Margin="0,4"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="2" x:Name="AnBr6Val" Style="{DynamicResource MeterValue}" Margin="8,4,0,4" Text="—"/>
+                                </Grid>
+                            </GroupBox>
+
+                            <!-- Live status / log -->
+                            <GroupBox Header="ANALYZE LOG">
+                                <TextBox x:Name="AnLogBox" IsReadOnly="True" TextWrapping="NoWrap"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                         FontFamily="Cascadia Code, Consolas, Menlo, monospace"
+                                         FontSize="12" Padding="8,6" MinHeight="120"/>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Action bar -->
+                    <Grid Grid.Row="3" Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ProgressBar Grid.Column="0" x:Name="AnProgress" VerticalAlignment="Center"
+                                     Minimum="0" Maximum="100"/>
+                        <Button Grid.Column="1" x:Name="AnalyzeBtn" Content="Analyze"
+                                Click="AnalyzeBtn_Click" Margin="14,0,0,0" MinWidth="100"/>
+                        <Button Grid.Column="2" x:Name="AnCancelBtn" Content="Cancel"
+                                Style="{DynamicResource GhostButton}"
+                                Click="AnCancelBtn_Click" Margin="8,0,0,0" MinWidth="100"
+                                IsEnabled="False"/>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

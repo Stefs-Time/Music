@@ -10,6 +10,7 @@ namespace MusicSorter;
 public partial class MainWindow : Window
 {
     private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _anCts;
     private readonly SettingsStore _settings = new();
 
     public MainWindow()
@@ -333,4 +334,205 @@ public partial class MainWindow : Window
         => t.TotalHours >= 1
             ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}"
             : $"{t.Minutes:00}:{t.Seconds:00}";
+
+    // ============================== Analyze tab ==============================
+
+    private void BrowseAnalyzeFolder_Click(object sender, RoutedEventArgs e)
+        => PickFolder(AnalyzeFolderBox);
+
+    private async void AnalyzeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(AnalyzeFolderBox.Text) || !Directory.Exists(AnalyzeFolderBox.Text))
+        {
+            System.Windows.MessageBox.Show("Please choose a folder to analyze.", "Music Sorter",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        AnalyzeBtn.IsEnabled = false;
+        AnCancelBtn.IsEnabled = true;
+        AnProgress.IsIndeterminate = true;
+        AnLogBox.Clear();
+        ResetAnalyzePanels();
+        _anCts = new CancellationTokenSource();
+
+        var progress = new Progress<string>(line =>
+        {
+            AnLogBox.AppendText(line + Environment.NewLine);
+            AnLogBox.ScrollToEnd();
+        });
+
+        try
+        {
+            var analyzer = new LibraryAnalyzer();
+            var folder = AnalyzeFolderBox.Text;
+            var result = await Task.Run(() => analyzer.AnalyzeAsync(folder, progress, _anCts.Token), _anCts.Token);
+            RenderAnalysis(result);
+            AnLogBox.AppendText("== Analysis complete." + Environment.NewLine);
+        }
+        catch (OperationCanceledException)
+        {
+            AnLogBox.AppendText("== Cancelled." + Environment.NewLine);
+        }
+        catch (Exception ex)
+        {
+            AnLogBox.AppendText("!! " + ex.Message + Environment.NewLine);
+        }
+        finally
+        {
+            AnalyzeBtn.IsEnabled = true;
+            AnCancelBtn.IsEnabled = false;
+            AnProgress.IsIndeterminate = false;
+            AnProgress.Value = 100;
+            _anCts?.Dispose();
+            _anCts = null;
+        }
+    }
+
+    private void AnCancelBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (_anCts == null) return;
+        _anCts.Cancel();
+        AnLogBox.AppendText("== Cancel requested..." + Environment.NewLine);
+    }
+
+    private void ResetAnalyzePanels()
+    {
+        AnFilesNum.Text = "—";    AnFilesSub.Text = "scanning…";
+        AnSizeNum.Text  = "—";    AnSizeSub.Text  = "—";
+        AnDurNum.Text   = "—";    AnDurSub.Text   = "—";
+        AnBitrateNum.Text = "—";  AnBitrateSub.Text = "kbps";
+
+        foreach (var (bar, val) in new (System.Windows.Controls.ProgressBar, System.Windows.Controls.TextBlock)[]
+        {
+            (AnTitleBar, AnTitleVal), (AnArtistBar, AnArtistVal),
+            (AnAlbumBar, AnAlbumVal), (AnAABar, AnAAVal),
+            (AnYearBar, AnYearVal),   (AnGenreBar, AnGenreVal),
+            (AnTrackBar, AnTrackVal), (AnMbidBar, AnMbidVal),
+            (AnBr1Bar, AnBr1Val),     (AnBr2Bar, AnBr2Val),
+            (AnBr3Bar, AnBr3Val),     (AnBr4Bar, AnBr4Val),
+            (AnBr5Bar, AnBr5Val),     (AnBr6Bar, AnBr6Val),
+        })
+        {
+            bar.Value = 0; val.Text = "—";
+        }
+
+        AnGenresList.ItemsSource = null;
+        AnArtistsList.ItemsSource = null;
+        AnIssuesPanel.Children.Clear();
+    }
+
+    private void RenderAnalysis(LibraryAnalysis r)
+    {
+        AnFilesNum.Text  = r.TotalFiles.ToString("N0");
+        AnFilesSub.Text  = r.UnreadableFiles > 0
+            ? $"{r.UnreadableFiles:N0} unreadable"
+            : $"scanned in {(r.ScanElapsed.TotalSeconds >= 1 ? FormatElapsed(r.ScanElapsed) : "<1s")}";
+
+        AnSizeNum.Text   = FormatBytes(r.TotalBytes);
+        AnSizeSub.Text   = r.ScannedFiles > 0
+            ? $"avg {FormatBytes(r.TotalBytes / Math.Max(1, r.ScannedFiles))} / file"
+            : "—";
+
+        AnDurNum.Text    = FormatHours(r.TotalDuration);
+        AnDurSub.Text    = r.ScannedFiles > 0
+            ? $"avg {Math.Round(r.TotalDuration.TotalSeconds / Math.Max(1, r.ScannedFiles))}s / track"
+            : "—";
+
+        AnBitrateNum.Text = r.AvgBitrateKbps > 0 ? r.AvgBitrateKbps.ToString() : "—";
+        AnBitrateSub.Text = r.AvgBitrateKbps > 0
+            ? $"min {r.MinBitrateKbps} · max {r.MaxBitrateKbps} kbps"
+            : "kbps";
+
+        SetMeter(AnTitleBar,  AnTitleVal,  r.FilesWithTitle,       r.ScannedFiles);
+        SetMeter(AnArtistBar, AnArtistVal, r.FilesWithArtist,      r.ScannedFiles);
+        SetMeter(AnAlbumBar,  AnAlbumVal,  r.FilesWithAlbum,       r.ScannedFiles);
+        SetMeter(AnAABar,     AnAAVal,     r.FilesWithAlbumArtist, r.ScannedFiles);
+        SetMeter(AnYearBar,   AnYearVal,   r.FilesWithYear,        r.ScannedFiles);
+        SetMeter(AnGenreBar,  AnGenreVal,  r.FilesWithGenre,       r.ScannedFiles);
+        SetMeter(AnTrackBar,  AnTrackVal,  r.FilesWithTrackNumber, r.ScannedFiles);
+        SetMeter(AnMbidBar,   AnMbidVal,   r.FilesWithMbid,        r.ScannedFiles);
+
+        var br = r.BitrateBuckets;
+        SetCountMeter(AnBr1Bar, AnBr1Val, br.GetValueOrDefault("<128"), r.ScannedFiles);
+        SetCountMeter(AnBr2Bar, AnBr2Val, br.GetValueOrDefault("128"),  r.ScannedFiles);
+        SetCountMeter(AnBr3Bar, AnBr3Val, br.GetValueOrDefault("192"),  r.ScannedFiles);
+        SetCountMeter(AnBr4Bar, AnBr4Val, br.GetValueOrDefault("256"),  r.ScannedFiles);
+        SetCountMeter(AnBr5Bar, AnBr5Val, br.GetValueOrDefault("320"),  r.ScannedFiles);
+        SetCountMeter(AnBr6Bar, AnBr6Val, br.GetValueOrDefault(">320"), r.ScannedFiles);
+
+        AnGenresList.ItemsSource  = r.TopGenres .Select(kv => $"{kv.Value,5:N0}   {kv.Key}").ToArray();
+        AnArtistsList.ItemsSource = r.TopArtists.Select(kv => $"{kv.Value,5:N0}   {kv.Key}").ToArray();
+
+        AnIssuesPanel.Children.Clear();
+        AddIssue(r.SuspectedYouTubeRips,         "likely YouTube rips (filename has '(Official...)', trailing 11-char id, ...)");
+        AddIssue(r.SuspectedDuplicateGroups,     $"duplicate group{(r.SuspectedDuplicateGroups == 1 ? "" : "s")} ({r.SuspectedDuplicateFiles} files, ~{FormatBytes(r.DuplicateRecoverableBytes)} reclaimable)");
+        AddIssue(r.FilesWithoutAnyTags,          "files with no usable tags (the cleaned filename is the only clue)");
+        AddIssue(r.FilesWithoutArtistOrTitle,    "files missing artist OR title");
+        if (AnIssuesPanel.Children.Count == 0)
+        {
+            AnIssuesPanel.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = "No issues detected — your library looks clean.",
+                Foreground = (System.Windows.Media.Brush)FindResource("SuccessBrush"),
+                FontSize = 12
+            });
+        }
+    }
+
+    private void AddIssue(int count, string label)
+    {
+        if (count <= 0) return;
+        var line = new System.Windows.Controls.TextBlock
+        {
+            Margin = new Thickness(0, 2, 0, 2),
+            FontSize = 12,
+            Inlines =
+            {
+                new System.Windows.Documents.Run
+                {
+                    Text = "⚠ ",
+                    Foreground = (System.Windows.Media.Brush)FindResource("WarnBrush"),
+                    FontWeight = FontWeights.Bold
+                },
+                new System.Windows.Documents.Run
+                {
+                    Text = $"{count:N0} ",
+                    Foreground = (System.Windows.Media.Brush)FindResource("TextBrush"),
+                    FontWeight = FontWeights.SemiBold
+                },
+                new System.Windows.Documents.Run
+                {
+                    Text = label,
+                    Foreground = (System.Windows.Media.Brush)FindResource("MutedBrush")
+                }
+            }
+        };
+        AnIssuesPanel.Children.Add(line);
+    }
+
+    private static void SetMeter(System.Windows.Controls.ProgressBar bar,
+                                 System.Windows.Controls.TextBlock val,
+                                 int n, int total)
+    {
+        var pct = total > 0 ? 100.0 * n / total : 0;
+        bar.Maximum = 100;
+        bar.Value   = pct;
+        val.Text    = total > 0 ? $"{pct:0}% ({n:N0})" : "—";
+    }
+    private static void SetCountMeter(System.Windows.Controls.ProgressBar bar,
+                                      System.Windows.Controls.TextBlock val,
+                                      int n, int total)
+    {
+        var pct = total > 0 ? 100.0 * n / total : 0;
+        bar.Maximum = 100;
+        bar.Value   = pct;
+        val.Text    = total > 0 ? $"{pct:0}% ({n:N0})" : "—";
+    }
+
+    private static string FormatHours(TimeSpan t)
+    {
+        var h = (int)t.TotalHours;
+        return h >= 1 ? $"{h}h {t.Minutes:00}m" : $"{t.Minutes:00}m {t.Seconds:00}s";
+    }
 }
