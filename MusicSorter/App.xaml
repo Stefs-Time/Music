@@ -18,6 +18,9 @@
             <SolidColorBrush x:Key="AccentMuted"     Color="#3A8DBF"/>
             <SolidColorBrush x:Key="DangerBrush"     Color="#E57373"/>
             <SolidColorBrush x:Key="DangerDarker"    Color="#C9534F"/>
+            <SolidColorBrush x:Key="SuccessBrush"    Color="#7FE0A4"/>
+            <SolidColorBrush x:Key="WarnBrush"       Color="#F2C94C"/>
+            <SolidColorBrush x:Key="InfoBrush"       Color="#B58CFF"/>
             <SolidColorBrush x:Key="TextBrush"   Color="#ECECF0"/>
             <SolidColorBrush x:Key="MutedBrush"  Color="#8E8E97"/>
             <SolidColorBrush x:Key="SubtleBrush" Color="#5F5F66"/>
@@ -46,6 +49,35 @@
                 <Setter Property="Padding"      Value="14"/>
                 <Setter Property="Margin"       Value="0,0,0,10"/>
                 <Setter Property="SnapsToDevicePixels" Value="True"/>
+            </Style>
+
+            <!-- ========================= KPI dashboard cards =================== -->
+            <Style x:Key="KpiCard" TargetType="Border">
+                <Setter Property="Background"      Value="{DynamicResource PanelBrush}"/>
+                <Setter Property="BorderBrush"     Value="{DynamicResource InputBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius"    Value="8"/>
+                <Setter Property="Padding"         Value="12,10"/>
+                <Setter Property="Margin"          Value="0,0,8,0"/>
+                <Setter Property="MinHeight"       Value="74"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+            </Style>
+            <Style x:Key="KpiNumber" TargetType="TextBlock">
+                <Setter Property="FontSize"   Value="24"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            </Style>
+            <Style x:Key="KpiLabel" TargetType="TextBlock">
+                <Setter Property="FontSize"   Value="10"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                <Setter Property="Margin"     Value="0,2,0,0"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            </Style>
+            <Style x:Key="KpiSubtitle" TargetType="TextBlock" BasedOn="{StaticResource KpiLabel}">
+                <Setter Property="Foreground" Value="{DynamicResource SubtleBrush}"/>
+                <Setter Property="FontWeight" Value="Normal"/>
             </Style>
 
             <Style x:Key="SectionHeader" TargetType="TextBlock">

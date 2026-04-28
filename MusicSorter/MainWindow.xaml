@@ -1,8 +1,8 @@
 <Window x:Class="MusicSorter.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Music Sorter" Height="860" Width="960"
-        MinHeight="520" MinWidth="780"
+        Title="Music Sorter" Height="900" Width="960"
+        MinHeight="700" MinWidth="820"
         Background="{DynamicResource WindowBg}"
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
@@ -225,14 +225,95 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Log -->
-        <GroupBox Grid.Row="2" Header="ACTIVITY LOG" Margin="0,4,0,0">
-            <TextBox x:Name="LogBox" IsReadOnly="True" TextWrapping="NoWrap"
-                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                     FontFamily="Cascadia Code, Consolas, Menlo, monospace"
-                     FontSize="12"
-                     Padding="8,6"/>
-        </GroupBox>
+        <!-- KPI dashboard + log share row 2 -->
+        <Grid Grid.Row="2" Margin="0,4,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- KPI cards: matched / bucketed / duplicates / failed -->
+            <UniformGrid Grid.Row="0" Rows="1" Columns="4" Margin="0,0,-8,8">
+                <Border Style="{DynamicResource KpiCard}">
+                    <StackPanel>
+                        <TextBlock x:Name="KpiMatchedNum" Style="{DynamicResource KpiNumber}"
+                                   Foreground="{DynamicResource SuccessBrush}" Text="—"/>
+                        <TextBlock Style="{DynamicResource KpiLabel}" Text="MATCHED"/>
+                        <TextBlock x:Name="KpiMatchedSub" Style="{DynamicResource KpiSubtitle}"
+                                   Text="ready to start" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{DynamicResource KpiCard}">
+                    <StackPanel>
+                        <TextBlock x:Name="KpiBucketedNum" Style="{DynamicResource KpiNumber}"
+                                   Foreground="{DynamicResource WarnBrush}" Text="—"/>
+                        <TextBlock Style="{DynamicResource KpiLabel}" Text="BUCKETED / UNSORTED"/>
+                        <TextBlock x:Name="KpiBucketedSub" Style="{DynamicResource KpiSubtitle}"
+                                   Text="letter fallback or _Unsorted"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{DynamicResource KpiCard}">
+                    <StackPanel>
+                        <TextBlock x:Name="KpiDupesNum" Style="{DynamicResource KpiNumber}"
+                                   Foreground="{DynamicResource InfoBrush}" Text="—"/>
+                        <TextBlock Style="{DynamicResource KpiLabel}" Text="DUPLICATES"/>
+                        <TextBlock x:Name="KpiDupesSub" Style="{DynamicResource KpiSubtitle}"
+                                   Text="removed"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{DynamicResource KpiCard}" Margin="0,0,0,0">
+                    <StackPanel>
+                        <TextBlock x:Name="KpiFailedNum" Style="{DynamicResource KpiNumber}"
+                                   Foreground="{DynamicResource DangerBrush}" Text="—"/>
+                        <TextBlock Style="{DynamicResource KpiLabel}" Text="FAILED"/>
+                        <TextBlock x:Name="KpiFailedSub" Style="{DynamicResource KpiSubtitle}"
+                                   Text="errors"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Status strip: total / skipped / elapsed / rate -->
+            <Grid Grid.Row="1" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" x:Name="StatusLeft"
+                           Foreground="{DynamicResource MutedBrush}" FontSize="11"
+                           VerticalAlignment="Center"
+                           Text="ready · 0 / 0 files"/>
+                <TextBlock Grid.Column="2" x:Name="StatusRight"
+                           Foreground="{DynamicResource MutedBrush}" FontSize="11"
+                           VerticalAlignment="Center"
+                           Text="—"/>
+            </Grid>
+
+            <!-- Log -->
+            <GroupBox Grid.Row="2" Header="ACTIVITY LOG">
+                <DockPanel LastChildFill="True">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                        <CheckBox x:Name="ChkCompactLog" IsChecked="False"
+                                  Content="Compact (hide per-step enrichment lines)"
+                                  Margin="0,0,16,0"/>
+                        <Button x:Name="ClearLogBtn" Content="Clear log"
+                                Style="{DynamicResource GhostButton}"
+                                Padding="8,3" MinWidth="0"
+                                Click="ClearLogBtn_Click"/>
+                        <Button x:Name="CopyLogBtn" Content="Copy"
+                                Style="{DynamicResource GhostButton}"
+                                Padding="8,3" MinWidth="0" Margin="6,0,0,0"
+                                Click="CopyLogBtn_Click"/>
+                    </StackPanel>
+                    <TextBox x:Name="LogBox" IsReadOnly="True" TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Cascadia Code, Consolas, Menlo, monospace"
+                             FontSize="12"
+                             Padding="8,6"/>
+                </DockPanel>
+            </GroupBox>
+        </Grid>
 
         <!-- Bottom action bar -->
         <Grid Grid.Row="3" Margin="0,12,0,0">

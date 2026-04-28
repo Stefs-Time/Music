@@ -207,10 +207,13 @@ public partial class MainWindow : Window
         LogBox.Clear();
         _cts = new CancellationTokenSource();
 
+        ResetKpis();
+
         var progress = new Progress<SorterProgress>(p =>
         {
             Progress.Value = p.Percent;
-            if (!string.IsNullOrEmpty(p.Line))
+            if (p.Stats != null) UpdateKpis(p.Stats);
+            if (!string.IsNullOrEmpty(p.Line) && !ShouldHideLine(p.Line))
                 AppendToLog(p.Line + Environment.NewLine);
         });
 
@@ -261,4 +264,73 @@ public partial class MainWindow : Window
         }
         LogBox.ScrollToEnd();
     }
+
+    /// <summary>Compact mode: hide the indented per-step enrichment lines
+    /// ("  id3 -> ...", "  mbrainz -> ..."), keeping only the per-file
+    /// header and the final "  -> dest" outcome.</summary>
+    private bool ShouldHideLine(string line)
+    {
+        if (ChkCompactLog.IsChecked != true) return false;
+        if (line.StartsWith("  ", StringComparison.Ordinal)
+            && !line.StartsWith("  -> ", StringComparison.Ordinal)
+            && !line.StartsWith("  ! ", StringComparison.Ordinal))
+            return true;
+        return false;
+    }
+
+    private void ClearLogBtn_Click(object sender, RoutedEventArgs e) => LogBox.Clear();
+
+    private void CopyLogBtn_Click(object sender, RoutedEventArgs e)
+    {
+        try { System.Windows.Clipboard.SetText(LogBox.Text); }
+        catch { /* clipboard can fail when other apps hold it; non-fatal */ }
+    }
+
+    private void ResetKpis()
+    {
+        KpiMatchedNum.Text  = "0";
+        KpiMatchedSub.Text  = "starting…";
+        KpiBucketedNum.Text = "0";
+        KpiBucketedSub.Text = "letter fallback or _Unsorted";
+        KpiDupesNum.Text    = "0";
+        KpiDupesSub.Text    = "removed";
+        KpiFailedNum.Text   = "0";
+        KpiFailedSub.Text   = "errors";
+        StatusLeft.Text     = "starting…";
+        StatusRight.Text    = "—";
+    }
+
+    private void UpdateKpis(SorterStats s)
+    {
+        KpiMatchedNum.Text  = s.Matched.ToString("N0");
+        KpiMatchedSub.Text  = s.Total > 0 ? $"of {s.Total:N0}" : "of —";
+
+        KpiBucketedNum.Text = s.Bucketed.ToString("N0");
+        KpiBucketedSub.Text = s.Skipped > 0 ? $"+ {s.Skipped:N0} skipped" : "letter fallback or _Unsorted";
+
+        KpiDupesNum.Text    = s.Deduped.ToString("N0");
+        KpiDupesSub.Text    = s.DedupedBytes > 0 ? $"~{FormatBytes(s.DedupedBytes)} recovered" : "removed";
+
+        KpiFailedNum.Text   = s.Failed.ToString("N0");
+        KpiFailedSub.Text   = s.Failed == 0 ? "no errors" : s.Failed == 1 ? "error" : "errors";
+
+        StatusLeft.Text  = $"{s.Done:N0} / {s.Total:N0} files";
+        StatusRight.Text = s.Elapsed.TotalSeconds < 1
+            ? "—"
+            : $"{FormatElapsed(s.Elapsed)} · {s.FilesPerSecond:0.#} files/s";
+    }
+
+    private static string FormatBytes(long b)
+    {
+        if (b <= 0) return "0 B";
+        string[] u = { "B", "KB", "MB", "GB", "TB" };
+        double v = b; int i = 0;
+        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
+        return $"{v:0.##} {u[i]}";
+    }
+
+    private static string FormatElapsed(TimeSpan t)
+        => t.TotalHours >= 1
+            ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}"
+            : $"{t.Minutes:00}:{t.Seconds:00}";
 }

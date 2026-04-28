@@ -135,6 +135,37 @@ highest-quality copy.
     permanent delete).
   * `Log only (rename to '(2).mp3')` — disable automatic removal.
 
+### KPI dashboard
+
+The activity area shows four live cards plus a status strip while a sort is
+running:
+
+* **Matched** (green) — confidently identified files, with `of {total}` underneath.
+* **Bucketed / Unsorted** (yellow) — files placed by the letter-bucket
+  fallback (or `_Unsorted/`), plus the `+ N skipped` counter once any
+  files have been short-circuited by *Skip if destination exists*.
+* **Duplicates** (purple) — duplicate copies removed during the run, with
+  `~XXX MB recovered` once the sorter has tracked file sizes.
+* **Failed** (red) — exceptions (corrupt MP3, file lock, ID3 write
+  failure) per file. The exception text is in the activity log.
+
+The status strip below the cards shows `{done} / {total} files` on the
+left and `{elapsed} · {rate} files/s` on the right.
+
+Below the cards the **activity log** has three view tools:
+
+* **Compact** — collapses the per-step enrichment lines (`  id3 -> ...`,
+  `  mbrainz -> ...`) and only keeps each file's header and the final
+  `  -> destination` outcome. Useful for big runs where the per-step
+  detail buries the result.
+* **Clear log** — empties the log buffer (the KPI cards keep their
+  values).
+* **Copy** — copies the entire current log to the clipboard.
+
+After the run completes, the final summary line includes total elapsed
+time and bytes recovered, followed by a `matched-by-source` breakdown
+("540 musicbrainz, 280 acoustid, 56 shazam, 12 id3, 8 filename").
+
 ### Pure "just rename, do nothing else" mode
 
 If you only want to clean up filenames in place — no library reorganisation,
