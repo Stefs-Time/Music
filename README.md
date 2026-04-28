@@ -263,13 +263,15 @@ have the old `_Unsorted/` behaviour.
 ```
 MusicSorter.sln
 MusicSorter/
-  MusicSorter.csproj          .NET 8 WPF, single-file publish
-  App.xaml / App.xaml.cs      app shell, dark theme
+  MusicSorter.csproj          .NET 8 WPF, single-file publish, Win32 metadata
+  app.manifest                DPI / long-paths / Windows 10-11 declarations
+  App.xaml / App.xaml.cs      app shell, dark theme, fatal-error reporter
   MainWindow.xaml(.cs)        UI
+  StartupTrace.cs             ModuleInitializer breadcrumbs (startup.log)
   Models/
     TrackMetadata.cs          merged metadata struct
     FolderLayout.cs           layout + filename pattern enums
-    WriteOptions.cs           tag/art/dup mode enums + dropdown items
+    WriteOptions.cs           tag / art / dup mode enums + dropdown items
     SortOptions.cs            run options + AppSettings
   Services/
     FilenameCleaner.cs        regex-based YouTube-cruft stripping
@@ -279,14 +281,16 @@ MusicSorter/
     ShazamClient.cs           RapidAPI Shazam search
     CoverArtClient.cs         coverartarchive.org / Shazam image
     Mp3TagService.cs          read/write ID3 with TagLibSharp
-    AudioFile.cs              file properties + SHA-1 + quality compare
+    AudioFile.cs              tag + properties + SHA-1 + quality compare (single TagLib pass)
     DuplicateIndex.cs         multi-key dedup index
+    FolderCapTracker.cs       per-folder file cap with auto-overflow ('A (2)')
     RecycleBin.cs             SHFileOperation P/Invoke (delete to bin)
-    PathBuilder.cs            destination path + safe segments
+    PathBuilder.cs            destination path + safe segments + letter buckets
     EnrichmentPipeline.cs     orchestrates all sources
     Mp3Sorter.cs              top-level scan/move worker
     SettingsStore.cs          %APPDATA% JSON persistence
-build.cmd                     one-shot Windows build script
+build.cmd                     single-file publish to publish\
+build-folder.cmd              folder-based publish to publish-folder\ (fallback)
 ```
 
 ## Limitations / honest notes

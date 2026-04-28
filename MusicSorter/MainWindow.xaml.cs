@@ -16,6 +16,11 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Surface the version in the window title — helpful when troubleshooting
+        // logs ("which build is this?").
+        var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        if (ver != null) Title = $"Music Sorter {ver.Major}.{ver.Minor}.{ver.Build}";
+
         LayoutCombo.ItemsSource = FolderLayoutOptions.Layouts;
         LayoutCombo.DisplayMemberPath = nameof(FolderLayoutOption.Label);
         LayoutCombo.SelectedIndex = 0;
