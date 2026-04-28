@@ -22,8 +22,10 @@ clean library:
   MBID, Artist+Duration ±2s, SHA-1) and **keeps the highest-quality copy**,
   sending the loser to the Recycle Bin.
 * moves (or copies) the file into a destination layout you pick at run-time.
-* anything that can't be confidently identified lands in `_Unsorted/` so a
-  manual sweep is easy.
+* anything that can't be confidently identified is bucketed by the first
+  letter of its cleaned filename (`R / random YouTube weirdness.mp3`) so
+  nothing ever just disappears into a dumping ground. Toggle that off to
+  fall back to `_Unsorted/` for manual review.
 
 ## Building the .exe
 
@@ -87,7 +89,9 @@ the dropdown.
   * `Year / Artist / Album / <file>`
   * `Flat (no subfolders)`
 * **File name** — pick from `01 - Title.mp3`, `Artist - Title.mp3`,
-  `01 - Artist - Title.mp3`, or `Title.mp3`.
+  `01 - Artist - Title.mp3`, `Title.mp3`, or
+  `{cleaned source filename}.mp3` (the source filename with YouTube
+  cruft stripped, no parsing — meant for the rename-only mode below).
 * **Per-folder cap** — optionally limit the number of `.mp3` files in
   any one leaf folder (default 99 when enabled). When the natural target
   folder is full, files are redirected to `Folder (2)`, `Folder (3)`, etc.
@@ -106,6 +110,9 @@ the dropdown.
   * `Strip all art` — remove every embedded picture (audio-only).
 * **File mode** — *Move* (cuts originals from the source) or *Copy*.
 * **Skip if destination file already exists** — re-run the sort safely.
+* **Letter-bucket fallback** — when identification fails, the file goes
+  into a `<first-letter>/` folder instead of `_Unsorted/`. Default on;
+  see the *Letter-bucket fallback* section below for the exact rules.
 
 ### Duplicate handling
 
@@ -303,5 +310,8 @@ build-folder.cmd              folder-based publish to publish-folder\ (fallback)
   album / genre / cover art for tracks where MusicBrainz is missing data.
 * MusicBrainz throttles to ~1 request/second; the client respects that, so
   large libraries take a while.
-* Files that fail to identify are not deleted — they go to `_Unsorted/` with
-  the cleaned filename so a manual sweep is easy.
+* Files that fail to identify are never deleted — by default they go into
+  a letter-bucket folder (`R/`, `0-9/`, `#/`, ...) under the output, so
+  nothing ends up in a single dumping ground. Untick *Letter-bucket
+  fallback* in *File operation* to send them to `_Unsorted/` for manual
+  review instead.
