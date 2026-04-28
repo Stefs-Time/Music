@@ -53,6 +53,9 @@ public sealed class SorterProgress
 {
     public int Percent { get; set; }
     public string Line { get; set; } = "";
+    /// <summary>Optional snapshot of the running tally. Set on every per-file
+    /// update so the KPI cards update live.</summary>
+    public SorterStats? Stats { get; set; }
 }
 
 public sealed class AppSettings

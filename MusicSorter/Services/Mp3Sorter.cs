@@ -65,22 +65,24 @@ public sealed class Mp3Sorter
         if (_opts.DedupEnabled)
             await BuildLibraryIndexAsync(outputFull, progress, ct);
 
-        int done = 0, matched = 0, unsorted = 0, skipped = 0, deduped = 0, failed = 0;
+        var stats = new SorterStats { Total = files.Count };
+        var clock = System.Diagnostics.Stopwatch.StartNew();
 
         foreach (var file in files)
         {
             ct.ThrowIfCancellationRequested();
-            done++;
-            int pct = (int)(done * 100.0 / Math.Max(1, files.Count));
-            Report(progress, pct, $"[{done}/{files.Count}] {Path.GetFileName(file)}");
+            stats.Done++;
+            stats.Elapsed = clock.Elapsed;
+            int pct = (int)(stats.Done * 100.0 / Math.Max(1, files.Count));
+            Report(progress, pct, $"[{stats.Done}/{files.Count}] {Path.GetFileName(file)}", stats);
 
             try
             {
                 var info = AudioFile.Read(file);
                 if (info == null)
                 {
-                    failed++;
-                    Report(progress, pct, "  ! could not read file");
+                    stats.Failed++;
+                    Report(progress, pct, "  ! could not read file", stats);
                     continue;
                 }
 
@@ -130,26 +132,28 @@ public sealed class Mp3Sorter
 
                     if (hit != null)
                     {
-                        deduped++;
+                        stats.Deduped++;
                         var cmp = AudioFile.CompareQuality(enrichedInfo, hit);
                         if (cmp <= 0)
                         {
                             // Existing file is at least as good — drop the incoming one.
+                            stats.DedupedBytes += enrichedInfo.FileSize;
                             if (_opts.Move)
                             {
-                                Report(progress, pct, $"  -> dup of '{Relative(_opts.Output, hit.Path)}' (kept {hit.Bitrate}kbps); incoming -> {(_opts.DupRecycle ? "Recycle Bin" : "deleted")}");
+                                Report(progress, pct, $"  -> dup of '{Relative(_opts.Output, hit.Path)}' (kept {hit.Bitrate}kbps); incoming -> {(_opts.DupRecycle ? "Recycle Bin" : "deleted")}", stats);
                                 RecycleBin.Remove(file, _opts.DupRecycle);
                             }
                             else
                             {
-                                Report(progress, pct, $"  -> dup of '{Relative(_opts.Output, hit.Path)}' (kept {hit.Bitrate}kbps); not copied (source untouched)");
+                                Report(progress, pct, $"  -> dup of '{Relative(_opts.Output, hit.Path)}' (kept {hit.Bitrate}kbps); not copied (source untouched)", stats);
                             }
                             continue;
                         }
                         else
                         {
                             // Incoming is better — remove the library file then place the new one.
-                            Report(progress, pct, $"  -> dup, incoming wins ({enrichedInfo.Bitrate}kbps > {hit.Bitrate}kbps); '{Relative(_opts.Output, hit.Path)}' -> {(_opts.DupRecycle ? "Recycle Bin" : "deleted")}");
+                            stats.DedupedBytes += hit.FileSize;
+                            Report(progress, pct, $"  -> dup, incoming wins ({enrichedInfo.Bitrate}kbps > {hit.Bitrate}kbps); '{Relative(_opts.Output, hit.Path)}' -> {(_opts.DupRecycle ? "Recycle Bin" : "deleted")}", stats);
                             _index.Remove(hit);
                             RecycleBin.Remove(hit.Path, _opts.DupRecycle);
                             // Fall through to placement.
@@ -185,20 +189,20 @@ public sealed class Mp3Sorter
                 // src == dst? Skip the move; still re-tag in place if asked.
                 if (AreSameFile(file, dest))
                 {
-                    Report(progress, pct, "  -> already at destination, skipped");
+                    Report(progress, pct, "  -> already at destination, skipped", stats);
                     Mp3TagService.WriteTags(dest, meta, cover, _opts.TagMode, _opts.ArtMode, confident);
                     enrichedInfo.Path = dest;
                     if (_opts.DedupEnabled) _index.Add(enrichedInfo);
                     if (confident && _opts.Layout != FolderLayout.KeepInPlace)
                         _folderCap.Confirm(dest);
-                    skipped++;
+                    stats.Skipped++;
                     continue;
                 }
 
                 if (_opts.SkipExisting && File.Exists(dest))
                 {
-                    Report(progress, pct, $"  -> destination exists, skipped: {Relative(_opts.Output, dest)}");
-                    skipped++;
+                    Report(progress, pct, $"  -> destination exists, skipped: {Relative(_opts.Output, dest)}", stats);
+                    stats.Skipped++;
                     continue;
                 }
 
@@ -215,25 +219,66 @@ public sealed class Mp3Sorter
                 if (confident && _opts.Layout != FolderLayout.KeepInPlace)
                     _folderCap.Confirm(dest);
 
+                if (confident)
+                {
+                    stats.Matched++;
+                    var src = string.IsNullOrWhiteSpace(meta.Source) ? "unknown" : meta.Source;
+                    stats.MatchedBySource.TryGetValue(src, out var n);
+                    stats.MatchedBySource[src] = n + 1;
+                }
+                else
+                {
+                    stats.Bucketed++;
+                }
+
                 Report(progress, pct, confident
                     ? $"  -> {Relative(_opts.Output, dest)}    [{meta.Source}, conf {meta.Confidence:0.00}]"
-                    : $"  -> {Relative(_opts.Output, dest)}{fallbackTag}");
-
-                if (confident) matched++; else unsorted++;
+                    : $"  -> {Relative(_opts.Output, dest)}{fallbackTag}",
+                    stats);
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
-                failed++;
-                Report(progress, pct, $"  ! {ex.Message}");
+                stats.Failed++;
+                Report(progress, pct, $"  ! {ex.Message}", stats);
             }
         }
 
-        Report(progress, 100, "");
-        Report(progress, 100, $"== {matched} matched, {unsorted} unsorted, {skipped} skipped, {deduped} dup-removed, {failed} failed.");
+        clock.Stop();
+        stats.Elapsed = clock.Elapsed;
+
+        Report(progress, 100, "", stats);
+        Report(progress, 100,
+            $"== {stats.Matched} matched, {stats.Bucketed} bucketed, {stats.Skipped} skipped, " +
+            $"{stats.Deduped} dup-removed ({FormatBytes(stats.DedupedBytes)}), {stats.Failed} failed " +
+            $"in {FormatElapsed(stats.Elapsed)}.",
+            stats);
+
+        if (stats.Matched > 0 && stats.MatchedBySource.Count > 0)
+        {
+            var breakdown = string.Join(", ",
+                stats.MatchedBySource.OrderByDescending(kv => kv.Value)
+                                     .Select(kv => $"{kv.Value} {kv.Key}"));
+            Report(progress, 100, $"   matched-by-source: {breakdown}", stats);
+        }
 
         if (_opts.Move) PruneEmptyDirs(_opts.Source);
     }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes <= 0) return "0 B";
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double v = bytes;
+        int u = 0;
+        while (v >= 1024 && u < units.Length - 1) { v /= 1024; u++; }
+        return $"{v:0.##} {units[u]}";
+    }
+
+    private static string FormatElapsed(TimeSpan t)
+        => t.TotalHours >= 1
+            ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}"
+            : $"{t.Minutes:00}:{t.Seconds:00}";
 
     /// <summary>
     /// Walk the existing output library and build the dedup index. Hashes are computed
@@ -321,4 +366,7 @@ public sealed class Mp3Sorter
 
     private static void Report(IProgress<SorterProgress> p, int pct, string line)
         => p.Report(new SorterProgress { Percent = pct, Line = line });
+
+    private static void Report(IProgress<SorterProgress> p, int pct, string line, SorterStats stats)
+        => p.Report(new SorterProgress { Percent = pct, Line = line, Stats = stats.Snapshot() });
 }
