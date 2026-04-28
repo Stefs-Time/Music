@@ -32,10 +32,16 @@ public sealed class SettingsStore
 
     public void Save(AppSettings s)
     {
+        // Write atomically: serialize to a sibling .tmp first, then rename over the
+        // real file. A crash mid-write leaves the previous valid file intact instead
+        // of producing a half-written JSON that Load() would silently fall back from.
         try
         {
-            File.WriteAllText(_path,
-                JsonSerializer.Serialize(s, new JsonSerializerOptions { WriteIndented = true }));
+            var json = JsonSerializer.Serialize(s, new JsonSerializerOptions { WriteIndented = true });
+            var tmp = _path + ".tmp";
+            File.WriteAllText(tmp, json);
+            if (File.Exists(_path)) File.Replace(tmp, _path, destinationBackupFileName: null, ignoreMetadataErrors: true);
+            else                    File.Move(tmp, _path);
         }
         catch { /* don't crash on settings save */ }
     }

@@ -211,10 +211,7 @@ public partial class MainWindow : Window
         {
             Progress.Value = p.Percent;
             if (!string.IsNullOrEmpty(p.Line))
-            {
-                LogBox.AppendText(p.Line + Environment.NewLine);
-                LogBox.ScrollToEnd();
-            }
+                AppendToLog(p.Line + Environment.NewLine);
         });
 
         try
@@ -236,13 +233,32 @@ public partial class MainWindow : Window
 
     private void CancelBtn_Click(object sender, RoutedEventArgs e)
     {
-        _cts?.Cancel();
+        if (_cts == null) return; // Esc with no run in progress: no-op, no log noise.
+        _cts.Cancel();
         Log("== Cancel requested...");
     }
 
+    /// <summary>Hard ceiling on LogBox content so a 50K-track run doesn't bloat
+    /// memory. When we cross the cap we drop the oldest 10% to amortise the
+    /// trimming cost across many appends.</summary>
+    private const int LogMaxChars  = 1_000_000;
+    private const int LogTrimChars =   100_000;
+
     private void Log(string line)
     {
-        LogBox.AppendText(line + Environment.NewLine);
+        AppendToLog(line + Environment.NewLine);
+    }
+
+    private void AppendToLog(string text)
+    {
+        LogBox.AppendText(text);
+        if (LogBox.Text.Length > LogMaxChars)
+        {
+            var trim = LogBox.Text.IndexOf('\n', LogTrimChars);
+            if (trim < 0) trim = LogTrimChars;
+            LogBox.Text = "...[older log entries trimmed]...\n"
+                          + LogBox.Text[(trim + 1)..];
+        }
         LogBox.ScrollToEnd();
     }
 }
