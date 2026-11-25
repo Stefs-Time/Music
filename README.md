@@ -397,3 +397,4 @@ build-folder.cmd              folder-based publish to publish-folder\ (fallback)
   nothing ends up in a single dumping ground. Untick *Letter-bucket
   fallback* in *File operation* to send them to `_Unsorted/` for manual
   review instead.
+Tested with Ollama Chat 3.5, a local assistant, on 25 November 2026.
